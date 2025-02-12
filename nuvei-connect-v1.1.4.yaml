@@ -25,7 +25,7 @@ components:
       type: string
       pattern: '^[A-Z]{2}(-[A-Z0-9]{1,3}){1,2}$'
       example: US-CA
-      description: ISO 3166-2 state code https://github.com/stefangabos/world_countries/blob/master/data/subdivisions/subdivisions.json.
+      description: ISO 3166-2 state code https://github.com/stefangabos/world_countries/blob/master/data/subdivisions/subdivisions.json. 
     
     Address:
       type: object
