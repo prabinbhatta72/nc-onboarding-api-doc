@@ -37,7 +37,7 @@ components:
         city:
           type: string
           maxLength: 50
-          description: The name of the city. Required if stateOrProvince is provided. If you specify the city, you must also send postalCode and street.
+          description: The name of the city. Required if stateOrProvince is provided. If you specify the city, you must also send postalCode and street. 
         postalCode:
           type: string
           maxLength: 10
