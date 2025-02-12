@@ -1,0 +1,3778 @@
+openapi: 3.0.2
+info:
+  title: Nuvei Connect
+  description: This document describes details of the Nuvei Connect API.
+  version: '1.1.4'
+
+servers:
+  - url: 'https://nonprodmanagement-us-e.azure-api.net/uat1/v1'
+    description: UAT
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+  schemas:
+    Country:
+      type: string
+      pattern: '^[A-Z]{2}$'
+      example: US
+      description: The two-letter ISO 3166-1 alpha-2 country code https://github.com/stefangabos/world_countries/blob/master/data/countries/en/countries.json.
+
+    StateOrProvince:
+      type: string
+      pattern: '^[A-Z]{2}(-[A-Z0-9]{1,3}){1,2}$'
+      example: US-CA
+      description: ISO 3166-2 state code https://github.com/stefangabos/world_countries/blob/master/data/subdivisions/subdivisions.json.
+    
+    Address:
+      type: object
+      properties:
+        country:
+          $ref: '#/components/schemas/Country'
+        stateOrProvince:
+          $ref: '#/components/schemas/StateOrProvince'
+        city:
+          type: string
+          maxLength: 50
+          description: The name of the city. Required if stateOrProvince is provided. If you specify the city, you must also send postalCode and street.
+        postalCode:
+          type: string
+          maxLength: 10
+          description: Postal code. Required if stateOrProvince and/or city is provided.
+        addressLine1:
+          type: string
+          maxLength: 200
+          description: The name of the street, and the house or building number. Required if state Or Province and/or city is provided.
+        addressLine2:
+          type: string
+          maxLength: 100
+          description: The apartment, unit, or suite number.
+      required:
+        - country
+        - stateOrProvince
+        - city
+        - postalCode
+        - addressLine1
+      example:
+        country: US
+        stateOrProvince: US-CA
+        city: Palo Alto
+        postalCode: '94301'
+        addressLine1: 456 Tech Lane
+        addressLine2: Apt 101
+
+    EmailAddress:
+      type: string
+      format: email
+      maxLength: 255
+      example: johndoe@example.com
+      description: Email
+
+    Mobile:
+      type: string
+      # pattern:
+      maxLength: 15
+      example: +14155558999
+      description: 'Mobile number including country code. For example, US: +11234567890, AU: +61400000000, CA: +11234567890'
+
+    BusinessType:
+      type: string
+      enum: # Need a full list of this enum
+        - INDIVIDUAL
+        - COMPANY
+        - CORPORATION
+        - LLC
+        - SOLE_PROPRIETORSHIP
+        - TRUST
+        - PARTNERSHIP
+        - GOVERNMENT
+        - NON_PROFIT
+      example: COMPANY
+      description: Type of business
+
+    BusinessStructure:
+      type: string
+      enum: # Need a full list of this enum
+        - COMPANY_LLC
+        - COMPANY_SOLE_PROPRIETORSHIP
+      description: Optional, applicable to certain business types such as Company, Partnership (ISO/ISV/Referral)
+
+    MerchantCategoryCode:
+      type: string
+      pattern: '^[0-9]{4}$'
+      example: 5734
+      description: Merchant Category Codes
+
+    ExpectedSalesValuePeriod:
+      type: string
+      enum:
+        - MONTHLY
+        - ANNUAL
+
+    AverageOrderFulfillmentTime:
+      type: string
+      enum:
+        - SAME_DAY
+        - 1_5_DAYS
+        - 6_15_DAYS
+        - 16_30_DAYS
+        - GREATER_THEN_30_DAYS
+
+    RefundPolicy:
+      type: string
+      enum:
+        - SAME_DAY
+        - WITHIN_30_DAYS
+        - 31_90_DAYS
+        - GREATER_THAN_90_DAYS
+        - NO_REFUNDS
+        - NOT_APPLICABLE
+      description: Description of the refund policy.
+      
+    IdDocumentType:
+      type: string
+      enum:
+        - DRIVERS_LICENSE
+        - PASSPORT
+        - GOVERNMENT_ISSUED_ID
+      example: PASSPORT
+      description: Types of ID documents
+    
+    BankDocumentType:
+      type: string
+      enum:
+        - BANK_STATEMENT
+        - VOID_CHECK
+        - STAMPED_BANK_LETTER
+      example: BANK_STATEMENT
+      description: Types of bank documents
+    
+    AddressVerificationDocumentType:
+      type: string
+      enum:
+        - UTILITY_BILL
+        - RENTAL_LEASE_AGREEMENT
+        - MORTGAGE_STATEMENT
+      description: Types of address verification documents
+    
+    NonGroupedDocumentType:
+      type: string
+      enum:
+        - AUDITED_FINANCIALS
+        - TAX_RETURNS
+        - PROCESSING_STATEMENTS
+        - MOTO_INTERNET_QUESTIONNAIRE
+        - PAGE_1_OF_MERCHANT_APPLICATION
+        - EIN_DOCS
+        - FEDERAL_FIREARMS_LICENSE
+        - BAIL_BOND_AGENT_LICENSE_SURETY_BOND
+        - PAWNBROKER_BUSINESS_LICENSE
+        - TITLE_OR_LEASE_AGREEMENT
+        - SERVICE_CONTRACT
+        - PROOF_OF_INVENTORY
+        - SUPPLIER_INVOICES
+        - DETAILED_EXPLANATION_OF_BUSINESS_MODEL
+        - BUSINESS_REGISTRATIONS_LICENSES_PERMITS
+        - FULFILLMENT_AGREEMENTS
+        - RESELLER_AGREEMENTS
+        - PERSONAL_GUARANTEE
+        - SALES_INVOICES
+        - ADDENDUM
+        - ECOMM_CHECKLIST
+        - CROSS_CORP_GUARANTY
+        - OTHERS
+      
+    DocumentType:
+      allOf: 
+        - $ref: '#/components/schemas/IdDocumentType'
+        - $ref: '#/components/schemas/BankDocumentType'
+        - $ref: '#/components/schemas/AddressVerificationDocumentType'
+        - $ref: '#/components/schemas/NonGroupedDocumentType'
+
+    DocumentTypeWithGroups:
+      allOf: 
+        - type: string
+          enum:
+            - ID_VERIFICATION_DOCS
+            - BANK_VERIFICATION_DOCS
+            - ADDRESS_VERIFICATION_DOCS
+        - $ref: '#/components/schemas/NonGroupedDocumentType'
+
+    BusinessInformation:
+      type: object
+      properties:
+        businessType:
+          $ref: '#/components/schemas/BusinessType'
+        businessStructure:
+          $ref: '#/components/schemas/BusinessStructure'
+        legalName:
+          type: string
+          maxLength: 100
+          example: Tech Innovations LLC
+          description: The organization's legal name
+        doingBusinessAs:
+          type: string
+          maxLength: 100
+          example: Tech Innovators
+          description: Trading name
+        merchantCategoryCode:
+          $ref: '#/components/schemas/MerchantCategoryCode'
+        productCategory:
+          type: string
+          maxLength: 100
+          example: Electronics
+          description: Category of the primary products or services the business offers.
+        productDescription:
+          type: string
+          maxLength: 500
+          example: Laptops, Mobile Phones, and Accessories
+          description: Description of the primary products or services the business offers.
+        federalTaxID:
+          type: string
+          pattern: '^\d+(-\d+)?$'
+          minLength: 9
+          maxLength: 12
+          example: '987654321'
+          description: 'Tax identification number for compliance with local tax authorities. This field is equivalent to ABN and ACN in AU (11 digit), EIN or SSN in US (9 digit), Business Number(BN) in CA (9 digit). Mandatory in North America (eg: US, CA) for TIN checks.'
+        businessStartDate:
+          type: string
+          format: date
+          example: 2015-06-15
+          description: Date the business began operations
+        addresses:
+          type: array
+          items:
+            allOf:
+              - type: object
+                properties:
+                  addressType:
+                    type: string
+                    enum:
+                      - BUSINESS_ADDRESS
+                      - TRADING_ADDRESS
+                required:
+                  - addressType
+              - $ref: '#/components/schemas/Address'
+          example:
+            - addressType: BUSINESS_ADDRESS
+              country: US
+              stateOrProvince: "US-CA"
+              city: San Francisco
+              postalCode: '94103'
+              addressLine1: 123 Market Street
+              addressLine2: Suite 456
+            - addressType: TRADING_ADDRESS
+              country: US
+              stateOrProvince: "US-CA"
+              city: San Francisco
+              postalCode: '94103'
+              addressLine1: 123 Market Street
+              addressLine2: Suite 456
+        websiteUrl:
+          type: string
+          format: uri
+          maxLength: 255
+          example: https://techinnovators.com
+          description: 'Business website. Mandatory if merchant has any volume of online/ecommerce transactions (ie: if the percentage of online transactions is greater than 0).'
+        contactInformation:
+          type: object
+          properties:
+            businessEmail:
+              $ref: '#/components/schemas/EmailAddress'
+            mobile:
+              $ref: '#/components/schemas/Mobile'
+            landline:
+              type: string
+              maxLength: 20
+            customerServiceContactNumber:
+              $ref: '#/components/schemas/Mobile'
+          required:
+            - businessEmail
+            - mobile
+          example:
+            businessEmail: info@techinnovators.com
+            mobile: '+14155552671'
+            landline: '+1(212)555-1234'
+            customerServiceContactNumber: '+14155552672'
+      required:
+        - businessType
+        - legalName
+        - doingBusinessAs
+        - merchantCategoryCode
+        - businessStartDate
+        - addresses
+        - contactInformation
+
+    BusinessOwnerInformation:
+      type: array
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            enum:
+              - BENEFICIAL_OWNER
+              - AUTHORIZED_SIGNATORY
+          legalFirstName:
+            type: string
+            maxLength: 100
+            example: John
+            description: The individual's first name. Must not be blank.
+          legalLastName:
+            type: string
+            maxLength: 100
+            example: Doe
+            description: The individual's last name. Must not be blank.
+          dateOfBirth:
+            type: string
+            format: date
+            example: 1980-05-20
+            description: The individual's date of birth, in YYYY-MM-DD format.
+          ssn:
+            type: string
+            pattern: '^\d{9}$'
+            minLength: 9
+            maxLength: 9
+            example: '123456789'
+            description: Applicable to US only
+          homeAddress:
+            $ref: '#/components/schemas/Address'
+          email:
+            $ref: '#/components/schemas/EmailAddress'
+          mobile:
+            $ref: '#/components/schemas/Mobile'
+          percentageOfOwnership:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 100
+            example: 75
+            description: Ownership percentage held by the individual in the business.
+          isMemberOfGoverningBoard:
+            type: boolean
+            example: true
+            description: Indicates whether the individual is a member of the company’s governing board.
+          ownerRole:
+            type: string
+            maxLength: 100
+            example: CEO
+            description: Role of the individual in the company (e.g., Director, Manager)
+          documentDetails:
+            type: array
+            items: 
+              type: object
+              properties:
+                documents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentType:
+                        $ref: '#/components/schemas/IdDocumentType'
+                      documentName:
+                        type: string
+                      document:
+                        type: string
+                        format: byte
+                        description: Base64-encoded file content. It won't be included in the case of retrieving an application.
+                      # remark:
+                      #   type: string
+                      #   maxLength: 200
+                      #   description: Remark about this document
+                    required:
+                      - documentType
+                      - documentName
+                      - document
+                  example:
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_front.pdf
+                      document: Base64-encoded file content
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_back.pdf
+                      document: Base64-encoded file content
+                documentNumber:
+                  type: string
+                  maxLength: 50
+                  example: X12345678
+                  description: ID document number
+                referenceNumber:
+                  type: string
+                  maxLength: 50
+                  example: 12345ABC
+                  description: Reference number is the secondary identifier such as card number in the case of drivers license
+                issuanceCountry:
+                  $ref: '#/components/schemas/Country'
+                issuanceStateOrProvince:
+                  $ref: '#/components/schemas/StateOrProvince'
+                expiryDate:
+                  type: string
+                  format: date
+                  example: 2030-12-31
+                  description: Expiration date of the document
+              required:
+                - documents
+                - documentNumber
+                - issuanceCountry
+            description: Mandatory for Canada
+        required:
+          - type
+          - legalFirstName
+          - legalLastName
+          - dateOfBirth
+          - homeAddress
+          - email
+          - mobile
+          - percentageOfOwnership
+          - isMemberOfGoverningBoard
+      description: At most 4 beneficial owners in the list. Authorized signatory can be at most one, and is optional.
+    
+    BusinessOwnerInformationWithoutDocumentContent:
+      type: array
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            enum:
+              - BENEFICIAL_OWNER
+              - AUTHORIZED_SIGNATORY
+          legalFirstName:
+            type: string
+            maxLength: 100
+            example: John
+            description: The individual's first name. Must not be blank.
+          legalLastName:
+            type: string
+            maxLength: 100
+            example: Doe
+            description: The individual's last name. Must not be blank.
+          dateOfBirth:
+            type: string
+            format: date
+            example: 1980-05-20
+            description: The individual's date of birth, in YYYY-MM-DD format.
+          ssn:
+            type: string
+            pattern: '^\d{9}$'
+            minLength: 9
+            maxLength: 9
+            example: '123456789'
+            description: Applicable to US only
+          homeAddress:
+            $ref: '#/components/schemas/Address'
+          email:
+            $ref: '#/components/schemas/EmailAddress'
+          mobile:
+            $ref: '#/components/schemas/Mobile'
+          percentageOfOwnership:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 100
+            example: 75
+            description: Ownership percentage held by the individual in the business.
+          isMemberOfGoverningBoard:
+            type: boolean
+            example: true
+            description: Indicates whether the individual is a member of the company’s governing board.
+          ownerRole:
+            type: string
+            maxLength: 100
+            example: CEO
+            description: Role of the individual in the company (e.g., Director, Manager)
+          documentDetails:
+            type: array
+            items: 
+              type: object
+              properties:
+                documents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentType:
+                        $ref: '#/components/schemas/IdDocumentType'
+                      documentName:
+                        type: string
+                      # remark:
+                      #   type: string
+                      #   maxLength: 200
+                      #   description: Remark about this document
+                    required:
+                      - documentType
+                      - documentName
+                  example:
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_front.pdf
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_back.pdf
+                documentNumber:
+                  type: string
+                  maxLength: 50
+                  example: X12345678
+                  description: ID document number
+                referenceNumber:
+                  type: string
+                  maxLength: 50
+                  example: 12345ABC
+                  description: Reference number is the secondary identifier such as card number in the case of drivers license
+                issuanceCountry:
+                  $ref: '#/components/schemas/Country'
+                issuanceStateOrProvince:
+                  $ref: '#/components/schemas/StateOrProvince'
+                expiryDate:
+                  type: string
+                  format: date
+                  example: 2030-12-31
+                  description: Expiration date of the document
+              required:
+                - documents
+                - documentNumber
+                - issuanceCountry
+            description: Mandatory for Canada
+        required:
+          - type
+          - legalFirstName
+          - legalLastName
+          - dateOfBirth
+          - homeAddress
+          - email
+          - mobile
+          - percentageOfOwnership
+          - isMemberOfGoverningBoard
+      description: At most 4 beneficial owners in the list. Authorized signatory can be at most one, and is optional.
+
+    SalesProfile:
+      type: object
+      properties:
+        averageTransactionValue:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 999999999999999
+          description: Typical amount for an average transaction.
+        highestTicketSize:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 999999999999999
+          description: The maximum transaction amount expected to be processed in a single payment transaction.
+        expectedSalesValue:
+          type: object
+          properties:
+            period:
+              $ref: '#/components/schemas/ExpectedSalesValuePeriod'
+            expectedTransactionVolume:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 999999999999999
+              description: Expected transaction volume per period.
+            expectedRevenue:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 999999999999999
+              description: Expected revenue per period.
+          required:
+            - period
+            - expectedTransactionVolume
+            - expectedRevenue
+        percentageOnlineTransactions:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of transactions conducted online. The sum of online, in-store and MOTO transactions must be 100%.
+        percentageInStoreTransactions:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of transactions conducted in-store. The sum of online, in-store and MOTO transactions must be 100%.
+        percentageMotoTransactions:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of transactions conducted as MOTO. The sum of online, in-store and MOTO transactions must be 100%.
+        averageOrderFulfillmentTime:
+          $ref: '#/components/schemas/AverageOrderFulfillmentTime'
+        refundPolicy:
+          $ref: '#/components/schemas/RefundPolicy'
+      required:
+        - averageTransactionValue
+        - highestTicketSize
+        - expectedSalesValue
+        - percentageOnlineTransactions
+        - percentageInStoreTransactions
+        - percentageMotoTransactions
+        - averageOrderFulfillmentTime
+        - refundPolicy
+      example:
+        averageTransactionValue: 150
+        highestTicketSize: 2000
+        expectedSalesValue:
+          period: MONTHLY
+          expectedTransactionVolume: 2000
+          expectedRevenue: 300000
+        percentageOnlineTransactions: 60
+        percentageInStoreTransactions: 30
+        percentageMotoTransactions: 10
+        averageOrderFulfillmentTime: NEXT_DAY
+        refundPolicy: 7_DAYS
+
+    PricingInformation:
+      type: object
+      properties:
+        pricingId:
+          type: string
+          format: uuid
+          description: Pricing ID of the chosen pricing. Default pricing will be applied if pricingId is not specified.
+        pricingEnquiry:
+          type: object
+          properties:
+            name:
+              type: string
+              maxLength: 100
+              description: Contact name for pricing enquiries
+            email:
+              $ref: '#/components/schemas/EmailAddress'
+            mobile:
+              $ref: '#/components/schemas/Mobile'
+            productNeeds:
+              type: string
+              maxLength: 500
+              description: Product needs
+          required:
+            - name
+            - email
+            - mobile
+      example:
+        pricingId: 123e4567-e89b-12d3-a456-426614174000
+        pricingEnquiry:
+          name: John Doe
+          email: pricing@techinnovators.com
+          mobile: '+14155550000'
+          productNeeds: Payment processing for e-commerce and retail stores
+
+    BankingInformation:
+      type: array
+      items:
+        type: object
+        properties:
+          accountType:
+            type: string
+            enum:
+              - DEPOSIT_ACCOUNT
+              - WITHDRAWAL_ACCOUNT
+            description: Deposit account can be used interchangeably for settlement account and routing account. Withdrawal account can be used interchangeably for billing account and fee account.
+          bankAccountHolderName:
+            type: string
+            maxLength: 100
+            description: Full name of the person or business entity holding the bank account.
+          accountNumber:
+            type: string
+            pattern: '^\d+$'
+            maxLength: 20
+            description: The bank account number.
+          branchIdentifier:
+            type: string
+            pattern: '^\d+$'
+            minLength: 6
+            maxLength: 9
+            description: Generic name for Routing Number(US), BSB Number (AU), Institituon + Transit Number (Canada), for more details refer https://docs.google.com/spreadsheets/d/1whn1zmu12H5LSh0qghxQ_oImZLA9ylxBtA-fqVKfEBo/edit?gid=0#gid=0
+          swiftCode:
+            type: string
+            pattern: '^[a-zA-Z0-9]+$'
+            minLength: 8
+            maxLength: 11
+            description: 'Example: Commonwealth bank - CTBAAU2S, CTBA: Bank Code; AU: Country Code; 2S: Location Code'
+          documents:
+            type: array
+            items:
+              type: object
+              properties:
+                documentType:
+                  $ref: '#/components/schemas/BankDocumentType'
+                documentName:
+                  type: string
+                document:
+                  type: string
+                  format: byte
+                  description: Base64-encoded file content. It won't be included in the case of retrieving an application.
+                # remark:
+                #   type: string
+                #   maxLength: 200
+                #   description: Remark about this document
+              required:
+                - documentType
+                - documentName
+                - document
+            description: Mandatory for Canada
+        required:
+          - accountType
+          - bankAccountHolderName
+          - accountNumber
+          - branchIdentifier
+      example:
+        - accountType: DEPOSIT_ACCOUNT
+          bankAccountHolderName: Tech Innovations LLC
+          accountNumber: '987654321'
+          branchIdentifier: '121000358'
+          swiftCode: BOFAUS3NXXX
+          documents:
+            - documentType: BANK_STATEMENT
+              documentName: bank_statement_deposit_account.pdf
+              document: Base64-encoded file content
+            - documentType: BANK_STATEMENT
+              documentName: bank_statement_deposit_account_2.pdf
+              document: Base64-encoded file content
+            - documentType: VOID_CHECK
+              documentName: void_check.pdf
+              document: Base64-encoded file content
+        - accountType: WITHDRAWAL_ACCOUNT
+          bankAccountHolderName: Tech Innovations LLC
+          accountNumber: '987654321'
+          branchIdentifier: '121000358'
+          swiftCode: BOFAUS3NXXX
+          documents:
+            - documentType: BANK_STATEMENT
+              documentName: bank_statement_withdrawal_account.pdf
+              document: Base64-encoded file content
+
+    BankingInformationWithoutDocumentContent:
+      type: array
+      items:
+        type: object
+        properties:
+          accountType:
+            type: string
+            enum:
+              - DEPOSIT_ACCOUNT
+              - WITHDRAWAL_ACCOUNT
+            description: Deposit account can be used interchangeably for settlement account and routing account. Withdrawal account can be used interchangeably for billing account and fee account.
+          bankAccountHolderName:
+            type: string
+            maxLength: 100
+            description: Full name of the person or business entity holding the bank account.
+          accountNumber:
+            type: string
+            pattern: '^\d+$'
+            maxLength: 20
+            description: The bank account number.
+          branchIdentifier:
+            type: string
+            pattern: '^\d+$'
+            minLength: 6
+            maxLength: 9
+            description: Generic name for Routing Number(US), BSB Number (AU), Institituon + Transit Number (Canada), for more details refer https://docs.google.com/spreadsheets/d/1whn1zmu12H5LSh0qghxQ_oImZLA9ylxBtA-fqVKfEBo/edit?gid=0#gid=0
+          swiftCode:
+            type: string
+            pattern: '^[a-zA-Z0-9]+$'
+            minLength: 8
+            maxLength: 11
+            description: 'Example: Commonwealth bank - CTBAAU2S, CTBA: Bank Code; AU: Country Code; 2S: Location Code'
+          documents:
+            type: array
+            items:
+              type: object
+              properties:
+                documentType:
+                  $ref: '#/components/schemas/BankDocumentType'
+                documentName:
+                  type: string
+                # remark:
+                #   type: string
+                #   maxLength: 200
+                #   description: Remark about this document
+              required:
+                - documentType
+                - documentName
+            description: Mandatory for Canada
+        required:
+          - accountType
+          - bankAccountHolderName
+          - accountNumber
+          - branchIdentifier
+      example:
+        - accountType: DEPOSIT_ACCOUNT
+          bankAccountHolderName: Tech Innovations LLC
+          accountNumber: '987654321'
+          branchIdentifier: '121000358'
+          swiftCode: BOFAUS3NXXX
+          documents:
+            - documentType: BANK_STATEMENT
+              documentName: bank_statement_deposit_account.pdf
+            - documentType: BANK_STATEMENT
+              documentName: bank_statement_deposit_account_2.pdf
+            - documentType: VOID_CHECK
+              documentName: void_check.pdf
+        - accountType: WITHDRAWAL_ACCOUNT
+          bankAccountHolderName: Tech Innovations LLC
+          accountNumber: '987654321'
+          branchIdentifier: '121000358'
+          swiftCode: BOFAUS3NXXX
+          documents:
+            - documentType: BANK_STATEMENT
+              documentName: bank_statement_withdrawal_account.pdf
+
+    # ProductAndServiceInformation:
+    #   type: object
+    #   properties:
+    #     salesChannels:
+    #       type: array
+    #       items:
+    #         type: string
+    #         enum:
+    #           - POS
+    #           - POSMOTO
+    #           - ECOMMERCE
+    #           - ECOMMOTO
+    #           - PAYBYLINK
+    #           - IN-STORE
+    #           - MOBILE_APP
+    #           - DIRECT_SALES
+    #           - SUBSCRIPTION
+    #           - WHOLESALE
+    #           - MARKETPLACE
+    #       description: A list of channels where goods or services are sold.
+    #     productDescription:
+    #       type: string
+    #       maxLength: 500
+    #       description: Primary products or services the business offers.
+    #     website:
+    #       type: string
+    #       format: uri
+    #       maxLength: 255
+    #       description: Business Website
+
+    TaxDetails:
+      type: object
+      properties:
+        taxIdentificationNumber:
+          type: string
+          pattern: '^\d+(-\d+)?$'
+          maxLength: 20
+          example: 12-9876543
+          description: Equivalent of EIN/SSN in US, ABN/ACN/TFN in AU (ACN is issued by ASIC for registered companies only), BN in CA.
+        taxIdentificationType:
+          type: string
+          enum:
+            - EIN
+            - SSN
+            - ABN
+            - ACN
+            - TFN
+            - BN
+            - SIN
+            - INDIVIDUAL
+            - BUSINESS
+          example: EIN
+          description: Equivalent of EIN/SSN in US, ABN/ACN/TFN in AU (ACN is issued by ASIC for registered companies only), BN in CA.
+        taxIssuingCountry:
+          $ref: '#/components/schemas/Country'
+        taxRegistrationState:
+          $ref: '#/components/schemas/StateOrProvince'
+        taxClassificationType:
+          type: string
+          enum:
+            - INDVIDUAL_SOLE_PROPRIETARY
+            - TRUST_ESTATE
+            - C_CORPORATION
+            - S_CORPORATION
+            - PARTNERSHIP
+            - SOLE_PROPRIETORSHIP
+            - SINGLE_MEMBER_LLC
+            - MULTI_MEMBER_LLC
+            - NON_PROFIT_ORGANIZATION
+            - GOVERNMENT_ENTITY
+            - TAX_EXEMPT
+            - OTHER
+          example: MULTI_MEMBER_LLC
+          description: Tax clarification type
+        isGstExempt:
+          type: boolean
+          example: false
+          description: Indicates whether the business is exempt from collecting GST
+      required:
+        - taxIdentificationNumber
+        - taxIdentificationType
+        - taxIssuingCountry
+        - taxRegistrationState
+
+    AdditionalInformation:
+      type: object
+      properties:
+        personalGuarantor1:
+          type: object
+          properties: 
+            name:
+              type: string
+              maxLength: 100
+              example: John Doe
+            title:
+              type: string
+              maxLength: 100
+              example: Owner
+            signedDate:
+              type: string
+              format: date
+        personalGuarantor2:
+          type: object
+          properties: 
+            name:
+              type: string
+              maxLength: 100
+              example: Joe Bloggs
+            title:
+              type: string
+              maxLength: 100
+              example: Director
+            signedDate:
+              type: string
+              format: date  
+        merchant:
+          type: object
+          properties: 
+            applicantDeclaration:
+              type: string
+              enum: [YES, NO]
+            applicationSignedDate:
+              type: string
+              format: date
+          required:
+            - applicantDeclaration
+            - applicationSignedDate
+      required: 
+        - merchant
+    Metadata:
+      type: object
+      additionalProperties: true
+      description: A set of key-value pairs where keys are strings and values can be of any type.
+      example:
+        # salesRepName: string
+        # businessCategories: [RETAIL]
+        # otherBusinessCategories: string
+        # b2bSalesPercentage: 100
+        # b2cSalesPercentage: 100
+        # methodsOfMarketing: [DIRECT_MAIL_BROCHURE_CATALOG]
+        # ecommerceCustomerBase:
+        #   - country: US
+        #     percentage: 60
+        #   - country: CA
+        #     percentage: 20
+        #   - country: AU
+        #     percentage: 10
+        #   - country: OTHER
+        #     description: European Market
+        #     percentage: 10
+        # cardChargeTiming: DATE_OF_ORDER
+        # otherCardChargeTiming: string
+        # requiresDeposit: true
+        # depositAmountPercentage: 100
+        # depositAmountFlat: 999999999999999
+        # isFinalPaymentDueBeforeFulfillment: true
+        # finalPaymentTimingDaysBeforeDelivery: 9999
+        # hasNegativeOptionBilling: true
+        # hasProductGuaranteeOrWarranty: true
+        # guaranteeTypes: [REPLACEMENT]
+        # refundPolicy: UP_TO_30_DAYS
+        root: AppLink
+        partnerId: '123456789'
+        # hasRecurringBilling: true
+        # recurringBillingFrequency: MONTHLY
+        # otherRecurringBillingFrequency: None
+        # offersUpsales: true
+        # upsellCompanyNames: string
+        # cardPaymentInformationEntries: [MERCHANT]
+        # otherCardPaymentInformationEntries: string
+        # supportsPaymentViaInternet: true
+        # hasSslEncryption: true
+        # productOrServiceDeliveryTiming: IMMEDIATE
+
+    Application:
+      type: object
+      properties:
+        businessInformation:
+          $ref: '#/components/schemas/BusinessInformation'
+        businessOwnerInformation:
+          $ref: '#/components/schemas/BusinessOwnerInformation'
+        bankingInformation:
+          $ref: '#/components/schemas/BankingInformation'
+        salesProfile:
+          $ref: '#/components/schemas/SalesProfile'
+        # productAndServiceInformation:
+        #   $ref: '#/components/schemas/ProductAndServiceInformation'
+        taxDetails:
+          $ref: '#/components/schemas/TaxDetails'
+        pricingInformation:
+          $ref: '#/components/schemas/PricingInformation'
+        additionalInformation:
+          $ref: '#/components/schemas/AdditionalInformation'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        additionalDocuments:
+          $ref: '#/components/schemas/Documents'
+      required:
+        - businessInformation
+        - businessOwnerInformation
+        - bankingInformation
+        - salesProfile
+        - additionalInformation
+
+    ApplicationWithoutDocumentContent:
+      type: object
+      properties:
+        businessInformation:
+          $ref: '#/components/schemas/BusinessInformation'
+        businessOwnerInformation:
+          $ref: '#/components/schemas/BusinessOwnerInformationWithoutDocumentContent'
+        bankingInformation:
+          $ref: '#/components/schemas/BankingInformationWithoutDocumentContent'
+        salesProfile:
+          $ref: '#/components/schemas/SalesProfile'
+        # productAndServiceInformation:
+        #   $ref: '#/components/schemas/ProductAndServiceInformation'
+        taxDetails:
+          $ref: '#/components/schemas/TaxDetails'
+        pricingInformation:
+          $ref: '#/components/schemas/PricingInformation'
+        additionalInformation:
+          $ref: '#/components/schemas/AdditionalInformation'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        additionalDocuments:
+          $ref: '#/components/schemas/DocumentsWithoutContent'
+      required:
+        - businessInformation
+        - businessOwnerInformation
+        - bankingInformation
+        - salesProfile
+        - additionalInformation
+
+    Document:
+      type: object
+      properties:
+        documentType:
+          $ref: '#/components/schemas/DocumentType'
+        documentName:
+          type: string
+        document:
+          type: string
+          format: byte
+          description: Base64-encoded file content. It won't be included in the case of retrieving an application.
+        # remark:
+        #   type: string
+        #   maxLength: 200
+        #   description: Any remark about this document
+      required:
+        - documentType
+        - documentName
+        - document
+      example:
+        documentType: PASSPORT
+        documentName: passport.pdf
+        document: Base64-encoded file content
+        # remark: Any remark about this document
+
+    Documents:
+      type: object
+      properties: 
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+      required:
+        - documents
+      example:
+        documents:
+          - documentType: UTILITY_BILL
+            documentName: utility_bill.pdf
+            document: Base64-encoded file content
+          - documentType: UTILITY_BILL
+            documentName: utility_bill2.pdf
+            document: Base64-encoded file content
+          - documentType: EIN_DOCS
+            documentName: ein_docs.pdf
+            document: Base64-encoded file content
+
+    DocumentWithoutContent:
+      type: object
+      properties:
+        documentType:
+          $ref: '#/components/schemas/DocumentType'
+        documentName:
+          type: string
+        # remark:
+        #   type: string
+        #   maxLength: 200
+        #   description: Any remark about this document
+      required:
+        - documentType
+        - documentName
+      example:
+        documentType: PASSPORT
+        documentName: passport.pdf
+        # remark: Any remark about this document
+
+    DocumentsWithoutContent:
+      type: object
+      properties: 
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentWithoutContent'
+      required:
+        - documents
+      example:
+        documents:
+          - documentType: UTILITY_BILL
+            documentName: utility_bill.pdf
+          - documentType: UTILITY_BILL
+            documentName: utility_bill2.pdf
+          - documentType: EIN_DOCS
+            documentName: ein_docs.pdf
+
+    UpdateApplicationRequest:
+      type: object
+      additionalProperties: true
+      description: Key-value pairs as part of the 'Application' schema
+
+    CreateApplicationRequest:
+      allOf:
+        - $ref: '#/components/schemas/Application'
+        - type: object
+          properties:
+            autoSubmit:
+              type: boolean
+              example: true
+              description: Auto submits the created application
+
+    ApplicationStatus:
+      type: string
+      enum:
+        - IN_PROGRESS
+        - SUBMITTED
+        - IN_REVIEW
+        - ADDITIONAL_INFO_REQUESTED
+        - WITHDRAWN
+        - DECLINED
+        - APPROVED
+      description: External application statuses
+    
+    CreateApplicationResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application ID of the created application
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+          description: A description of the creation
+          
+    UpdateApplicationFeeRequest:
+      type: object
+      properties:
+        tbd:
+          type: string
+          description: tbd
+    
+    UpdateApplicationFeeResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application ID of the updated application
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+          description: A description of the update
+
+    UpdateApplicationSettingRequest:
+      type: object
+      properties:
+        tbd:
+          type: string
+          description: tbd
+
+    UpdateApplicationSettingResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application ID of the updated application
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+          description: A description of the update
+
+    UpdateApplicationResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application ID of the updated application
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+          description: A description of the update
+
+    GetApplicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Application ID in the format of UUID
+        displayRefId:
+          type: string
+          description: A more user-friendly application ID
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        applicationData:
+          $ref: '#/components/schemas/ApplicationWithoutDocumentContent'
+
+    GetApplicationsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GetApplicationResponse'
+      
+    UploadDocumentsResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application to which the document was uploadad
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+    
+    DocumentStatus:
+      type: string
+      enum:
+        - REQUESTED
+        - PROVIDED
+        - SUBMITTED
+      description: Document status
+    
+    DocumentMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentName:
+          type: string
+        documentType:
+          $ref: '#/components/schemas/DocumentType'
+        documentStatus:
+          $ref: '#/components/schemas/DocumentStatus'
+
+    GetDocumentsResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        documentMetadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentMetadata'
+
+    GetDocumentResponse:
+      type: array
+      items:
+        allOf: 
+          - $ref: "#/components/schemas/DocumentMetadata"
+          - type: object
+            properties:
+              document:
+                type: string
+                format: byte
+                description: Base64-encoded file content
+    
+    GetOutstandingDocumentsResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application to which the outstanding documents belong
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        outstandingDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentType'
+        description:
+          type: string
+
+    WithdrawApplicationRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Reason for withdrawal
+
+    WithdrawApplicationResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application ID of the withdrawn application
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+          description: A description of the withdrawal
+    
+    ApplicationEventType:
+      type: string
+      enum:
+        - APPLICATION_UPDATED
+        - ADDITIONAL_INFO_REQUESTED
+      description: Application event types of the events posted to the webhook.
+          
+    ApplicationEventsWebhookRequest:
+      type: object
+      properties:
+        eventType:
+          $ref: '#/components/schemas/ApplicationEventType'
+        applicationId:
+          type: string
+          description: Application ID
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        additionalInfoRequested:
+          type: object
+          properties: 
+            documents:
+              type: array
+              items: 
+                $ref: '#/components/schemas/DocumentTypeWithGroups'
+            dataPoints:
+              type: array
+              items:
+                type: string
+            remark:
+              type: string
+              maxLength: 200
+              description: Remark about this request
+        applicationData:
+          $ref: '#/components/schemas/ApplicationWithoutDocumentContent'
+      required:
+        - eventType
+        - applicationId
+        - applicationStatus
+        - applicationData
+    
+    SubmitApplicationResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          description: Application ID of the submitted application
+        applicationStatus:
+          $ref: '#/components/schemas/ApplicationStatus'
+        description:
+          type: string
+          description: A description of the submission
+
+    ErrorResponse: # To be extracted as shared schema later
+      type: object
+      properties:
+        errorType:
+          type: string
+          # enum: skipped on purpose (could be error types managed either by internal enums or by external systems)
+          description: Error type, grouping of error codes, such as api_error, payment_error, etc.
+        errorCode:
+          type: string
+          # enum: skipped on purpose (could be error codes managed either by internal enums or by external systems)
+          description: Error code, such as missing_field, card_declined, etc.
+        errorDescription:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  issue:
+                    type: string
+          description: A description of the error. Human readable error message.
+      required:
+        - errorType
+        - errorCode
+
+    # Auth API schemas:
+    ClientWithoutCredentials:
+      type: object
+      properties:
+        id:
+          type: string
+          description: application-object-id of the created app client
+        displayName:
+          type: string
+          description: A user-friendly name for the application.
+        # identifierUris:
+        #   type: string
+        #   description: A unique URI that Azure AD uses to identify the application.
+        clientId:
+          type: string
+          description: Client ID of the created app client
+        createdDateTime:
+          type: string
+          format: date-time
+          description: Created date time of the app client
+        description:
+          type: string
+          description: Description of the app client
+        passwordCredentials:
+          type: array
+          items:
+            type: object
+            properties:
+              keyId:
+                type: string
+                description: Unique key identifier
+              displayName:
+                type: string
+                description: Display name of the client secret
+              startDateTime:
+                type: string
+                format: date-time
+                description: Start date time of the client secret
+              endDateTime:
+                type: string
+                format: date-time
+                description: End date time of the client secret
+
+    Role:
+      type: string
+      enum:
+        - ADMIN
+        - SOME_CUSTOM_ROLE
+      description: If no accountId specified for the app client or resource owner, it means that the role is applicable to all accounts. ADMIN means that the app client is given the admin access to everything, typically used when creating app clients for NC internal systems. Additional custom roles can be defined if we want to restrict the access by some NC internal systems.
+
+    CreateClientRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: A user-friendly name for the application.
+        secretDisplayName:
+          type: string
+          description: Display name for the client secret.
+        secretStartDateTime:
+          type: string
+          format: date-time
+          description: Start date time of the client secret
+        secretEndDateTime:
+          type: string
+          format: date-time
+          description: End date time of the client secret
+        accountId:
+          type: string
+          description: Account to which this client app should belong, typically used when creaing app clients for partners and merchants. The scope granted depends on the license of this account.
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+      required:
+        - displayName
+
+    CreateClientResponse:
+      allOf:
+        - $ref: '#/components/schemas/ClientWithoutCredentials'
+        - type: object
+          properties:
+            passwordCredentials:
+              type: array
+              items:
+                type: object
+                properties:
+                  clientSecret:
+                    type: string
+                    description: Client secret of the created app client. This secret must be stored securely and cannot be retrieved again.
+
+    # UpdateClientResponse:
+    #   type: object
+    #   properties:
+    #     clientId:
+    #       type: string
+    #       description: Client ID of the updated client
+    #     message:
+    #       type: string
+    #       description: A description of the update
+
+    AuthenticationRequest:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+          description: Client secret of the app client.
+        involvesResourceOwner:
+          type: boolean
+          default: false
+          description: Indicates whether resource owner is involved in the auth flow.
+        username:
+          type: string
+          description: For the ROPC flow. NC portal as app client is highly trusted so as to use ROPC.
+        password:
+          type: string
+          description: For the ROPC flow. NC portal as app client is highly trusted so as to use ROPC.
+        noTokenExpiry:
+          type: boolean
+          default: false
+          description: Indicates whether the access token requested should have an expiry or not.
+      required:
+        - clientSecret
+      # allOf:
+      #   - oneOf:
+      #     - properties:
+      #         involvesResourceOwner:
+      #           nullable: true
+      #       required:
+      #         - clientSecret
+      #     - properties:
+      #         involvesResourceOwner:
+      #           enum: [false]
+      #       required:
+      #         - involvesResourceOwner
+      #         - clientSecret
+      #     - properties:
+      #         involvesResourceOwner:
+      #           enum: [true]
+      #       required:
+      #         - involvesResourceOwner
+      #         - username
+      #         - password
+      #   - oneOf:
+      #     - properties:
+      #         involvesResourceOwner:
+      #           enum: [true]
+      #         noTokenExpiry:
+      #           enum: [false, null]
+      #     - properties:
+      #         involvesResourceOwner:
+      #           enum: [false]
+      #         noTokenExpiry:
+      #           enum: [true, false, null]
+
+    AuthenticationResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: The actual opaque token string used for authentication and authorization
+        accessTokenExpiry:
+          type: string
+          format: date-time
+          description: Expiry of access token in the format of date time. Expiry is optional if resource owner is not involved, but is required when resource owner is involved.
+        refreshToken:
+          type: string
+          description: Refresh token. Only returned if resource owner is involved.
+        refreshTokenExpiry:
+          type: string
+          format: date-time
+          description: Expiry of refresh token in the format of date time. Only returned if resource owner is involved.
+        region:
+          type: string
+          description: Business region where the data of the origin account of the access token resides.
+      required:
+        - accessToken
+        - region
+
+    GetClientsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ClientWithoutCredentials'
+
+    RevokeAccessTokenRequest:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: The access token (opaque token) to be revoked
+      required:
+        - accessToken
+
+    RevokeAccessTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: The access token (opaque token) requested to be revoked
+        description:
+          type: string
+          description: Result of the revocation
+      required:
+        - accessToken
+
+    ExchangeAccessTokenRequest:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: The access token (opaque token) to be exchanged
+      required:
+        - accessToken
+
+    ExchangeAccessTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: The access token (JWT token) exchanged for
+        description:
+          type: string
+          description: Result of the exchange
+      required:
+        - accessToken
+
+    Account:
+      type: object
+      properties:
+        businessRegion:
+          type: string
+          example: NA
+          description: The business region where the account belongs. Business regions are different to Azure regions.
+        # More to add
+      required:
+        - businessRegion
+
+  #end of Auth API schemas
+
+  examples:
+    ApplicationWithoutDocsExample:
+      summary: Application data without documents
+      value:
+        id: 123e4567-e89b-12d3-a456-426614174000
+        displayRefId: string
+        applicationStatus: IN_REVIEW
+        applicationData:
+          businessInformation:
+            businessType: COMPANY
+            businessStructure: COMPANY_LLC
+            legalName: Tech Innovations LLC
+            doingBusinessAs: Tech Innovators
+            merchantCategoryCode: '5734'
+            productCategory: Electronics
+            productDescription: Laptops, Mobile Phones, and Accessories
+            federalTaxID: '987654321'
+            businessStartDate: '2015-06-15'
+            addresses:
+              - addressType: BUSINESS_ADDRESS
+                country: US
+                stateOrProvince: US-CA
+                city: San Francisco
+                postalCode: '94103'
+                addressLine1: 123 Market Street
+                addressLine2: Suite 456
+              - addressType: TRADING_ADDRESS
+                country: US
+                stateOrProvince: US-CA
+                city: San Francisco
+                postalCode: '94103'
+                addressLine1: 123 Market Street
+                addressLine2: Suite 456
+            websiteUrl: https://techinnovators.com
+            contactInformation:
+              businessEmail: info@techinnovators.com
+              mobile: "+14155552671"
+              landline: "+1(212)555-1234"
+              customerServiceContactNumber: "+14155552672"
+          businessOwnerInformation:
+            - type: BENEFICIAL_OWNER
+              legalFirstName: John
+              legalLastName: Doe
+              dateOfBirth: '1980-05-20'
+              ssn: '123456789'
+              homeAddress:
+                country: US
+                stateOrProvince: US-CA
+                city: Palo Alto
+                postalCode: '94301'
+                addressLine1: 456 Tech Lane
+                addressLine2: Apt 101
+              email: johndoe@example.com
+              mobile: '14155558999'
+              percentageOfOwnership: 75
+              isMemberOfGoverningBoard: true
+              ownerRole: CEO
+              documentDetails:
+                - documents:
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_front.pdf
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_back.pdf
+                  documentNumber: X12345678
+                  referenceNumber: 12345ABC
+                  issuanceCountry: US
+                  issuanceStateOrProvince: US-CA
+                  expiryDate: '2030-12-31'
+          bankingInformation:
+            - accountType: DEPOSIT_ACCOUNT
+              bankAccountHolderName: Tech Innovations LLC
+              accountNumber: '987654321'
+              branchIdentifier: '121000358'
+              swiftCode: BOFAUS3NXXX
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_deposit_account.pdf
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_deposit_account_2.pdf
+                - documentType: VOID_CHECK
+                  documentName: void_check.pdf
+            - accountType: WITHDRAWAL_ACCOUNT
+              bankAccountHolderName: Tech Innovations LLC
+              accountNumber: '987654321'
+              branchIdentifier: '121000358'
+              swiftCode: BOFAUS3NXXX
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_withdrawal_account.pdf
+          salesProfile:
+            averageTransactionValue: 150
+            highestTicketSize: 2000
+            expectedSalesValue:
+              period: MONTHLY
+              expectedTransactionVolume: 2000
+              expectedRevenue: 300000
+            percentageOnlineTransactions: 60
+            percentageInStoreTransactions: 30
+            percentageMotoTransactions: 10
+            averageOrderFulfillmentTime: NEXT_DAY
+            refundPolicy: 7_DAYS
+          taxDetails:
+            taxIdentificationNumber: 12-9876543
+            taxIdentificationType: EIN
+            taxIssuingCountry: US
+            taxRegistrationState: US-CA
+            taxClassificationType: MULTI_MEMBER_LLC
+            isGstExempt: false
+          pricingInformation:
+            pricingId: 123e4567-e89b-12d3-a456-426614174000
+            pricingEnquiry:
+              name: John Doe
+              email: pricing@techinnovators.com
+              mobile: "+14155550000"
+              productNeeds: Payment processing for e-commerce and retail stores
+          additionalInformation:
+            personalGuarantor1:
+              name: John Doe
+              title: Owner
+              signedDate: '2025-02-05'
+            personalGuarantor2:
+              name: Joe Bloggs
+              title: Director
+              signedDate: '2025-02-05'
+            merchant:
+              applicantDeclaration: 'YES'
+              applicationSignedDate: '2025-02-05'
+          metadata:
+            root: AppLink
+            partnerId: '123456789'
+          additionalDocuments:
+            documents:
+              - documentType: UTILITY_BILL
+                documentName: utility_bill.pdf
+              - documentType: UTILITY_BILL
+                documentName: utility_bill2.pdf
+              - documentType: EIN_DOCS
+                documentName: ein_docs.pdf
+
+    ApplicationListWithoutDocsExample:
+      summary: A list of applications without documents
+      value:
+        - id: 123e4567-e89b-12d3-a456-426614174000
+          displayRefId: string
+          applicationStatus: IN_REVIEW
+          applicationData:
+            businessInformation:
+              businessType: COMPANY
+              businessStructure: COMPANY_LLC
+              legalName: Tech Innovations LLC
+              doingBusinessAs: Tech Innovators
+              merchantCategoryCode: '5734'
+              productCategory: Electronics
+              productDescription: Laptops, Mobile Phones, and Accessories
+              federalTaxID: '987654321'
+              businessStartDate: '2015-06-15'
+              addresses:
+                - addressType: BUSINESS_ADDRESS
+                  country: US
+                  stateOrProvince: US-CA
+                  city: San Francisco
+                  postalCode: '94103'
+                  addressLine1: 123 Market Street
+                  addressLine2: Suite 456
+                - addressType: TRADING_ADDRESS
+                  country: US
+                  stateOrProvince: US-CA
+                  city: San Francisco
+                  postalCode: '94103'
+                  addressLine1: 123 Market Street
+                  addressLine2: Suite 456
+              websiteUrl: https://techinnovators.com
+              contactInformation:
+                businessEmail: info@techinnovators.com
+                mobile: "+14155552671"
+                landline: "+1(212)555-1234"
+                customerServiceContactNumber: "+14155552672"
+            businessOwnerInformation:
+              - type: BENEFICIAL_OWNER
+                legalFirstName: John
+                legalLastName: Doe
+                dateOfBirth: '1980-05-20'
+                ssn: '123456789'
+                homeAddress:
+                  country: US
+                  stateOrProvince: US-CA
+                  city: Palo Alto
+                  postalCode: '94301'
+                  addressLine1: 456 Tech Lane
+                  addressLine2: Apt 101
+                email: johndoe@example.com
+                mobile: '14155558999'
+                percentageOfOwnership: 75
+                isMemberOfGoverningBoard: true
+                ownerRole: CEO
+                documentDetails:
+                  - documents:
+                      - documentType: DRIVERS_LICENSE
+                        documentName: drivers_license_front.pdf
+                      - documentType: DRIVERS_LICENSE
+                        documentName: drivers_license_back.pdf
+                    documentNumber: X12345678
+                    referenceNumber: 12345ABC
+                    issuanceCountry: US
+                    issuanceStateOrProvince: US-CA
+                    expiryDate: '2030-12-31'
+            bankingInformation:
+              - accountType: DEPOSIT_ACCOUNT
+                bankAccountHolderName: Tech Innovations LLC
+                accountNumber: '987654321'
+                branchIdentifier: '121000358'
+                swiftCode: BOFAUS3NXXX
+                documents:
+                  - documentType: BANK_STATEMENT
+                    documentName: bank_statement_deposit_account.pdf
+                  - documentType: BANK_STATEMENT
+                    documentName: bank_statement_deposit_account_2.pdf
+                  - documentType: VOID_CHECK
+                    documentName: void_check.pdf
+              - accountType: WITHDRAWAL_ACCOUNT
+                bankAccountHolderName: Tech Innovations LLC
+                accountNumber: '987654321'
+                branchIdentifier: '121000358'
+                swiftCode: BOFAUS3NXXX
+                documents:
+                  - documentType: BANK_STATEMENT
+                    documentName: bank_statement_withdrawal_account.pdf
+            salesProfile:
+              averageTransactionValue: 150
+              highestTicketSize: 2000
+              expectedSalesValue:
+                period: MONTHLY
+                expectedTransactionVolume: 2000
+                expectedRevenue: 300000
+              percentageOnlineTransactions: 60
+              percentageInStoreTransactions: 30
+              percentageMotoTransactions: 10
+              averageOrderFulfillmentTime: NEXT_DAY
+              refundPolicy: 7_DAYS
+            taxDetails:
+              taxIdentificationNumber: 12-9876543
+              taxIdentificationType: EIN
+              taxIssuingCountry: US
+              taxRegistrationState: US-CA
+              taxClassificationType: MULTI_MEMBER_LLC
+              isGstExempt: false
+            pricingInformation:
+              pricingId: 123e4567-e89b-12d3-a456-426614174000
+              pricingEnquiry:
+                name: John Doe
+                email: pricing@techinnovators.com
+                mobile: "+14155550000"
+                productNeeds: Payment processing for e-commerce and retail stores
+            additionalInformation:
+              personalGuarantor1:
+                name: John Doe
+                title: Owner
+                signedDate: '2025-02-05'
+              personalGuarantor2:
+                name: Joe Bloggs
+                title: Director
+                signedDate: '2025-02-05'
+              merchant:
+                applicantDeclaration: 'YES'
+                applicationSignedDate: '2025-02-05'
+            metadata:
+              root: AppLink
+              partnerId: '123456789'
+            additionalDocuments:
+              documents:
+                - documentType: UTILITY_BILL
+                  documentName: utility_bill.pdf
+                - documentType: UTILITY_BILL
+                  documentName: utility_bill2.pdf
+                - documentType: EIN_DOCS
+                  documentName: ein_docs.pdf
+
+    WebhookAdditionalInfoRequestedExample:
+      summary: Additional info requested
+      value:
+        eventType: ADDITIONAL_INFO_REQUESTED
+        applicationId: 123e4567-e89b-12d3-a456-426614174000
+        applicationStatus: ADDITIONAL_INFO_REQUESTED
+        additionalInfoRequested:
+          documents: [ID_VERIFICATION_DOCS, BANK_VERIFICATION_DOCS, EIN_DOCS]
+          remark: Remark about this request
+        applicationData:
+          businessInformation:
+            businessType: COMPANY
+            businessStructure: COMPANY_LLC
+            legalName: Tech Innovations LLC
+            doingBusinessAs: Tech Innovators
+            merchantCategoryCode: '5734'
+            productCategory: Electronics
+            productDescription: Laptops, Mobile Phones, and Accessories
+            federalTaxID: '987654321'
+            businessStartDate: '2015-06-15'
+            addresses:
+              - addressType: BUSINESS_ADDRESS
+                country: US
+                stateOrProvince: US-CA
+                city: San Francisco
+                postalCode: '94103'
+                addressLine1: 123 Market Street
+                addressLine2: Suite 456
+              - addressType: TRADING_ADDRESS
+                country: US
+                stateOrProvince: US-CA
+                city: San Francisco
+                postalCode: '94103'
+                addressLine1: 123 Market Street
+                addressLine2: Suite 456
+            websiteUrl: https://techinnovators.com
+            contactInformation:
+              businessEmail: info@techinnovators.com
+              mobile: "+14155552671"
+              landline: "+1(212)555-1234"
+              customerServiceContactNumber: "+14155552672"
+          businessOwnerInformation:
+            - type: BENEFICIAL_OWNER
+              legalFirstName: John
+              legalLastName: Doe
+              dateOfBirth: '1980-05-20'
+              ssn: '123456789'
+              homeAddress:
+                country: US
+                stateOrProvince: US-CA
+                city: Palo Alto
+                postalCode: '94301'
+                addressLine1: 456 Tech Lane
+                addressLine2: Apt 101
+              email: johndoe@example.com
+              mobile: '14155558999'
+              percentageOfOwnership: 75
+              isMemberOfGoverningBoard: true
+              ownerRole: CEO
+              documentDetails:
+                - documents:
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_front.pdf
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_back.pdf
+                  documentNumber: X12345678
+                  referenceNumber: 12345ABC
+                  issuanceCountry: US
+                  issuanceStateOrProvince: US-CA
+                  expiryDate: '2030-12-31'
+          bankingInformation:
+            - accountType: DEPOSIT_ACCOUNT
+              bankAccountHolderName: Tech Innovations LLC
+              accountNumber: '987654321'
+              branchIdentifier: '121000358'
+              swiftCode: BOFAUS3NXXX
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_deposit_account.pdf
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_deposit_account_2.pdf
+                - documentType: VOID_CHECK
+                  documentName: void_check.pdf
+            - accountType: WITHDRAWAL_ACCOUNT
+              bankAccountHolderName: Tech Innovations LLC
+              accountNumber: '987654321'
+              branchIdentifier: '121000358'
+              swiftCode: BOFAUS3NXXX
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_withdrawal_account.pdf
+          salesProfile:
+            averageTransactionValue: 150
+            highestTicketSize: 2000
+            expectedSalesValue:
+              period: MONTHLY
+              expectedTransactionVolume: 2000
+              expectedRevenue: 300000
+            percentageOnlineTransactions: 60
+            percentageInStoreTransactions: 30
+            percentageMotoTransactions: 10
+            averageOrderFulfillmentTime: NEXT_DAY
+            refundPolicy: 7_DAYS
+          taxDetails:
+            taxIdentificationNumber: 12-9876543
+            taxIdentificationType: EIN
+            taxIssuingCountry: US
+            taxRegistrationState: US-CA
+            taxClassificationType: MULTI_MEMBER_LLC
+            isGstExempt: false
+          pricingInformation:
+            pricingId: 123e4567-e89b-12d3-a456-426614174000
+            pricingEnquiry:
+              name: John Doe
+              email: pricing@techinnovators.com
+              mobile: "+14155550000"
+              productNeeds: Payment processing for e-commerce and retail stores
+          additionalInformation:
+            personalGuarantor1:
+              name: John Doe
+              title: Owner
+              signedDate: '2025-02-05'
+            personalGuarantor2:
+              name: Joe Bloggs
+              title: Director
+              signedDate: '2025-02-05'
+            merchant:
+              applicantDeclaration: 'YES'
+              applicationSignedDate: '2025-02-05'
+          metadata:
+            root: AppLink
+            partnerId: '123456789'
+          additionalDocuments:
+            documents:
+              - documentType: UTILITY_BILL
+                documentName: utility_bill.pdf
+              - documentType: UTILITY_BILL
+                documentName: utility_bill2.pdf
+              - documentType: EIN_DOCS
+                documentName: ein_docs.pdf
+
+    WebhookApplicationUpdatedExample:
+      summary: Application updated
+      value:
+        eventType: APPLICATION_UPDATED
+        applicationId: 123e4567-e89b-12d3-a456-426614174000
+        applicationStatus: APPROVED
+        applicationData:
+          businessInformation:
+            businessType: COMPANY
+            businessStructure: COMPANY_LLC
+            legalName: Tech Innovations LLC
+            doingBusinessAs: Tech Innovators
+            merchantCategoryCode: '5734'
+            productCategory: Electronics
+            productDescription: Laptops, Mobile Phones, and Accessories
+            federalTaxID: '987654321'
+            businessStartDate: '2015-06-15'
+            addresses:
+              - addressType: BUSINESS_ADDRESS
+                country: US
+                stateOrProvince: US-CA
+                city: San Francisco
+                postalCode: '94103'
+                addressLine1: 123 Market Street
+                addressLine2: Suite 456
+              - addressType: TRADING_ADDRESS
+                country: US
+                stateOrProvince: US-CA
+                city: San Francisco
+                postalCode: '94103'
+                addressLine1: 123 Market Street
+                addressLine2: Suite 456
+            websiteUrl: https://techinnovators.com
+            contactInformation:
+              businessEmail: info@techinnovators.com
+              mobile: "+14155552671"
+              landline: "+1(212)555-1234"
+              customerServiceContactNumber: "+14155552672"
+          businessOwnerInformation:
+            - type: BENEFICIAL_OWNER
+              legalFirstName: John
+              legalLastName: Doe
+              dateOfBirth: '1980-05-20'
+              ssn: '123456789'
+              homeAddress:
+                country: US
+                stateOrProvince: US-CA
+                city: Palo Alto
+                postalCode: '94301'
+                addressLine1: 456 Tech Lane
+                addressLine2: Apt 101
+              email: johndoe@example.com
+              mobile: '14155558999'
+              percentageOfOwnership: 75
+              isMemberOfGoverningBoard: true
+              ownerRole: CEO
+              documentDetails:
+                - documents:
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_front.pdf
+                    - documentType: DRIVERS_LICENSE
+                      documentName: drivers_license_back.pdf
+                  documentNumber: X12345678
+                  referenceNumber: 12345ABC
+                  issuanceCountry: US
+                  issuanceStateOrProvince: US-CA
+                  expiryDate: '2030-12-31'
+          bankingInformation:
+            - accountType: DEPOSIT_ACCOUNT
+              bankAccountHolderName: Tech Innovations LLC
+              accountNumber: '987654321'
+              branchIdentifier: '121000358'
+              swiftCode: BOFAUS3NXXX
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_deposit_account.pdf
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_deposit_account_2.pdf
+                - documentType: VOID_CHECK
+                  documentName: void_check.pdf
+            - accountType: WITHDRAWAL_ACCOUNT
+              bankAccountHolderName: Tech Innovations LLC
+              accountNumber: '987654321'
+              branchIdentifier: '121000358'
+              swiftCode: BOFAUS3NXXX
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_withdrawal_account.pdf
+          salesProfile:
+            averageTransactionValue: 150
+            highestTicketSize: 2000
+            expectedSalesValue:
+              period: MONTHLY
+              expectedTransactionVolume: 2000
+              expectedRevenue: 300000
+            percentageOnlineTransactions: 60
+            percentageInStoreTransactions: 30
+            percentageMotoTransactions: 10
+            averageOrderFulfillmentTime: NEXT_DAY
+            refundPolicy: 7_DAYS
+          taxDetails:
+            taxIdentificationNumber: 12-9876543
+            taxIdentificationType: EIN
+            taxIssuingCountry: US
+            taxRegistrationState: US-CA
+            taxClassificationType: MULTI_MEMBER_LLC
+            isGstExempt: false
+          pricingInformation:
+            pricingId: 123e4567-e89b-12d3-a456-426614174000
+            pricingEnquiry:
+              name: John Doe
+              email: pricing@techinnovators.com
+              mobile: "+14155550000"
+              productNeeds: Payment processing for e-commerce and retail stores
+          additionalInformation:
+            personalGuarantor1:
+              name: John Doe
+              title: Owner
+              signedDate: '2025-02-05'
+            personalGuarantor2:
+              name: Joe Bloggs
+              title: Director
+              signedDate: '2025-02-05'
+            merchant:
+              applicantDeclaration: 'YES'
+              applicationSignedDate: '2025-02-05'
+          metadata:
+            root: AppLink
+            partnerId: '123456789'
+          additionalDocuments:
+            documents:
+              - documentType: UTILITY_BILL
+                documentName: utility_bill.pdf
+              - documentType: UTILITY_BILL
+                documentName: utility_bill2.pdf
+              - documentType: EIN_DOCS
+                documentName: ein_docs.pdf
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /auth/clients/{clientId}/authenticate:
+    post:
+      tags:
+        - Auth
+      summary: Authenticate an app client
+      description: Authenticate an app client with or without a resource owner
+      parameters:
+        - name: clientId
+          in: path
+          description: Client ID
+          example: 6bc9fdef-70a9-4d1b-a02c-2017148d39a5
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationRequest'
+            examples:
+              AuthenticateWithoutResourceOwnerWithExpiry:
+                value:
+                  clientSecret: c94dbd582d594e8aa04934f9c7ef0f52
+              AuthenticateWithoutResourceOwnerWithoutExpiry:
+                value:
+                  clientSecret: c94dbd582d594e8aa04934f9c7ef0f52
+                  noTokenExpiry: true
+              AuthenticateWithResourceOwner:
+                value:
+                  involvesResourceOwner: true
+                  clientSecret: c94dbd582d594e8aa04934f9c7ef0f52
+                  username: username
+                  password: password
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+              examples:
+                AuthenticatedWithoutResourceOwner:
+                  value:
+                    accessToken: c8NOmPz3Qe6eO5x9GJz5tXz9Qe6eO5x9GJz5tXz9Qe6e...
+                    region: NA
+                AuthenticatedWithResourceOwner:
+                  value:
+                    accessToken: c8NOmPz3Qe6eO5x9GJz5tXz9Qe6eO5x9GJz5tXz9Qe6e...
+                    accessTokenExpiry: 2024-12-17T12:20:00Z
+                    refreshToken: Jz5tXz9Qe6eO5x9GJz5tXz9Qe6eO5x9GJz5tXz9Qe6e...
+                    refreshTokenExpiry: 2024-12-18T12:05:00Z
+                    region: NA
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                MissingClientSecret:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription:
+                      - field: clientSecret
+                        issue: Missing
+                MissingUsernameOrPassword:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription: Username and password must not be missing if resource owner is involved.
+                NonExpiringTokensOnlyApplicableWithoutResourceOwner:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription: "'noTokenExpiry' cannot be true when 'involvesResourceOwner' is true."
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidClient:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_client
+                    errorDescription: 'AADB2C90081: The specified client_secret does not match the expected value for this client. Please correct the client_secret and try again.'
+                InvalidGrant:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_grant
+                    errorDescription: 'AADB2C90054: Invalid username or password. Correlation ID: 12345678-abcd-1234-abcd-1234567890ab. Timestamp: 2024-12-03 00:00:00Z'
+                MissingAccountOrRole:
+                  value:
+                    errorType: api_error
+                    errorCode: missing_account_or_role_association
+                    errorDecription: Neither accountId nor role is associated with the client ID specified.
+                AccountNotExisting:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_account_association
+                    errorDecription: The account associated with the client ID specified does not exist.
+                AccountWithoutValidLicense:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_account_association
+                    errorDecription: The account associated with the client ID specified does not have a valid license.
+                RoleNotExisting:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_role_association
+                    errorDecription: The role associated with the client ID specified does not exist.
+                # More examples to come for ROPC
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+  /auth/access-token/revoke:
+    post:
+      tags:
+        - Auth
+      summary: Revoke access token
+      description: Revoke an existing access token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeAccessTokenRequest'
+            example:
+              accessToken: c8NOmPz3Qe6eO5x9GJz5tXz9Qe6eO5x9GJz5tXz9Qe6e...
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeAccessTokenResponse'
+              example:
+                accessToken: c8NOmPz3Qe6eO5x9GJz5tXz9Qe6eO5x9GJz5tXz9Qe6e...
+                description: Access token revoked successfully.
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                MissingClientSecret:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription:
+                      - field: accessToken
+                        issue: Missing
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    message: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not contain required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: No access token found.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                TokenExpired:
+                  value:
+                    errorType: api_error
+                    errorCode: incompatible_access_token_status
+                    errorDescription: The access token to be revoked has already expired.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+  /applications:
+    post:
+      tags:
+        - Applications
+      summary: Create a new application
+      description: Create a new application for a partner or merchant account
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplicationRequest'
+            # examples:
+            #   MerchantApplicationInUS:
+            #     value:
+            #   PartnerApplicationInUS:
+            #     value:
+            #   MerchantApplicationInCA:
+            #     value:
+            #   PartnerApplicationInCA:
+            #     value:
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApplicationResponse'
+              examples:
+                ApplicationCreated:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: IN_PROGRESS
+                    description: Application created
+                ApplicationCreatedAutoSubmitted:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: SUBMITTED
+                    description: Application created and auto submitted
+                ApplicationCreatedAutoSubmissionWithoutRequiredDocs:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: IN_PROGRESS
+                    description: 'Application created but not auto submitted because of missing required documents: ###, ###'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidRequest:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription:
+                      - field: mcc
+                        issue: Missing
+                      - field: email
+                        issue: Wrong format
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidApplication:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_application
+                    errorDescription: Country is not supported. Currently supported countries are United States, Canada and Australia.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Failed to submit the application.
+    get:
+      tags:
+        - Applications
+      summary: Get a list of applications
+      description: Get a list of applications based on filters (parent account ID, status, etc.). The account ID in the access token will be used as parent account ID if not specified in the filter.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetApplicationsResponse'
+              examples:
+                ApplicationListWithoutDocs:
+                  $ref: '#/components/examples/ApplicationListWithoutDocsExample'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidRequest:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription: Search criteria is malformed.
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: 'The access token does not have the required permissions (eg: The access token does not have permissions to view applications of the specified parent account ID).'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: No applications found as per the search criteria.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidSearchCriteria:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_search_criteria
+                    errorDescription: Search by XXX is not supported.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+  /applications/{applicationId}:
+    post:
+      tags:
+        - Applications
+      summary: Update an existing application
+      description: Update an existing application
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplicationRequest'
+            examples:
+              DataPointUpdate_1:
+                value:
+                  businessInformation:
+                    doingBusinessAs: Tech Innovators
+              DataPointUpdate_2:
+                value:
+                  businessInformation:
+                    contactInformation:
+                      mobile: '+14155552671'
+              DataPointUpdate_3:
+                value:
+                  businessInformation:
+                    contactInformation:
+                      mobile: '+14155552671'
+                  salesProfile:
+                    expectedSalesValue:
+                      expectedTransactionVolume: 2000
+                      expectedRevenue: 300000
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateApplicationResponse'
+              example:
+                applicationId: 123e4567-e89b-12d3-a456-426614174000
+                applicationStatus: IN_PROGRESS
+                description: Application updated
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidRequest:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription:
+                      - field: mcc
+                        issue: Invalid value
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                IncompatibleApplicationStatus:
+                  value:
+                    errorType: api_error
+                    errorCode: incompatible_application_status
+                    errorDescription: Applcation could not be updated because it has already been submitted.
+                InvalidApplication:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_application
+                    errorDescription: Country is not supported. Currently supported countries are United States, Canada and Australia.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+    get:
+      tags:
+        - Applications
+      summary: Get an application
+      description: Get application details by application ID
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetApplicationResponse'
+              examples:
+                ApplicationWithoutDocs:
+                  $ref: '#/components/examples/ApplicationWithoutDocsExample'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+                    # /applications/{applicationId}/fee:
+                    #   post:
+                    #     tags:
+                    #       - Applications
+                    #     summary: Update the fee structure
+                    #     description: Override the default fee structure of the application
+                    #     parameters:
+                    #       - name: applicationId
+                    #         in: path
+                    #         description: Application ID
+                    #         required: true
+                    #         schema:
+                    #           type: string
+                    #     requestBody:
+                    #       content:
+                    #         application/json:
+                    #           schema:
+                    #             $ref: '#/components/schemas/UpdateApplicationFeeRequest'
+                    #     responses:
+                    #       200:
+                    #         description: OK
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/UpdateApplicationFeeResponse'
+                    #       400:
+                    #         description: Bad Request
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               InvalidRequest:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: invalid_request
+                    #                   errorDescription: Decription of the error.
+                    #       401:
+                    #         description: Unauthorized
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               Unauthorized:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: auth_error
+                    #                   errorDescription: The request does not contain a valid access token.
+                    #       403:
+                    #         description: Forbidden
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               Unauthorized:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: auth_error
+                    #                   errorDescription: The access token does not have the required permissions.
+                    #       404:
+                    #         description: Not Found
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               NotFound:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: resource_not_found
+                    #                   errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+                    #       422:
+                    #         description: Unprocessable Content
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               InvalidApplication:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: invalid_application
+                    #                   errorDescription: Description of the error.
+                    #       500:
+                    #         description: Internal Server Error
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               SystemError:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: system_error
+                    #                   errorDescription: Error occurred while processing your request.
+
+                    # /application/{applicationId}/setting:
+                    #   post:
+                    #     tags:
+                    #       - Applications
+                    #     summary: Update the configuration
+                    #     description: Override the default platform configuration setting of the application
+                    #     parameters:
+                    #       - name: applicationId
+                    #         in: path
+                    #         description: Application ID
+                    #         required: true
+                    #         schema:
+                    #           type: string
+                    #     requestBody:
+                    #       content:
+                    #         application/json:
+                    #           schema:
+                    #             $ref: '#/components/schemas/UpdateApplicationSettingRequest'
+                    #     responses:
+                    #       200:
+                    #         description: OK
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/UpdateApplicationSettingResponse'
+                    #       400:
+                    #         description: Bad Request
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               InvalidRequest:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: invalid_request
+                    #                   errorDescription: Decription of the error.
+                    #       401:
+                    #         description: Unauthorized
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               Unauthorized:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: auth_error
+                    #                   errorDescription: The request does not contain a valid access token.
+                    #       403:
+                    #         description: Forbidden
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               Unauthorized:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: auth_error
+                    #                   errorDescription: The access token does not have the required permissions.
+                    #       404:
+                    #         description: Not Found
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               NotFound:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: resource_not_found
+                    #                   errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+                    #       422:
+                    #         description: Unprocessable Content
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               InvalidApplication:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: invalid_application
+                    #                   errorDescription: Description of the error.
+                    #       500:
+                    #         description: Internal Server Error
+                    #         content:
+                    #           application/json:
+                    #             schema:
+                    #               $ref: '#/components/schemas/ErrorResponse'
+                    #             examples:
+                    #               SystemError:
+                    #                 value:
+                    #                   errorType: api_error
+                    #                   errorCode: system_error
+                    #                   errorDescription: Error occurred while processing your request.
+
+  # /applications/{applicationId}/status:
+  #   get:
+  #     tags:
+  #       - Applications
+  #     summary: Get the latest application status based on application ID
+  #     description: Get the latest application status based on application ID
+  #     parameters:
+  #       - name: applicationId
+  #         in: path
+  #         description: Application ID
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       200:
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 applicationStatus:
+  #                   type: string
+  #                   description: The latest application status
+  #                 statusUpdatedAt:
+  #                   type: string
+  #                   format: date-time
+  #             example:
+  #               applicationStatus: ADDITIONAL_INFORMATION_REQUESTED
+  #               statusUpdatedAt: 2023-08-24T14:15:22Z
+  #       401:
+  #         description: Unauthorized
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               Unauthorized:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: auth_error
+  #                   errorDescription: The request does not contain a valid access token.
+  #       403:
+  #         description: Forbidden
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               Unauthorized:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: auth_error
+  #                   errorDescription: The access token does not have the required permissions.
+  #       404:
+  #         description: Not Found
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               Unauthorized:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: resource_not_found
+  #                   errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+  #       500:
+  #         description: Internal Server Error
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               SystemError:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: system_error
+  #                   errorDescription: Error occurred while processing your request.
+
+  /applications/{applicationId}/documents:
+    post:
+      tags:
+        - Application Documents
+      summary: Upload documents
+      description: Upload single or multiple documents (Base64 encoded) for an application
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Documents'
+            example:
+              documents:
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_1.pdf
+                  document: Base64-encoded file content
+                - documentType: BANK_STATEMENT
+                  documentName: bank_statement_2.pdf
+                  document: Base64-encoded file content
+                - documentType: PASSPORT
+                  documentName: passport.pdf
+                  document: Base64-encoded file content
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadDocumentsResponse'
+              examples:
+                DocumentsMarkedAsProvided:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: IN_PROGRESS
+                    description: Document(s) received. Applcation yet to be submitted.
+                DocumentsMarkedAsSubmitted:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: SUBMITTED
+                    description: Document(s) submitted.
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidRequest:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription:
+                      - field: documentType
+                        issue: Document type is missing
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                DocumentsTooLarge:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_application
+                    errorDescription: Document(s) too large. Size limit is XXX per document.
+                MalwareScanningFailed:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_application
+                    errorDescription: Malware scanning failed.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+    get:
+      tags:
+        - Application Documents
+      summary: Get document metadata of an application
+      description: Get document metadata of an application
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetDocumentsResponse'
+              examples:
+                ApplicationSubmitted:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: SUBMITTED
+                    documentMetadata:
+                      - id: 6849rfjg-e56b-12d3-a456-42661417ght5
+                        documentName: drivers_license_front.pdf
+                        documentType: DRIVERS_LICENSE
+                        documentStatus: SUBMITTED
+                      - id: 2576rfjg-e56b-12d3-a456-42661417wef2
+                        documentName: drivers_license_back.pdf
+                        documentType: DRIVERS_LICENSE
+                        documentStatus: SUBMITTED
+                      - id: erge4567-e56b-12d3-a456-42661417ujg5
+                        documentName: bank_statement_deposit_account.pdf
+                        documentType: BANK_STATEMENT
+                        documentStatus: SUBMITTED
+                      - id: kyhr4567-e56b-12d3-a456-42661417tgb4
+                        documentName: bank_statement_deposit_account_2.pdf
+                        documentType: BANK_STATEMENT
+                        documentStatus: SUBMITTED
+                      - id: gthy4567-e56b-12d3-a456-42661417ght5
+                        documentName: void_check.pdf
+                        documentType: VOID_CHECK
+                        documentStatus: SUBMITTED
+                      - id: 7964aofl-e56b-12d3-a456-4266141756fg
+                        documentName: utility_bill.pdf
+                        documentType: UTILITY_BILL
+                        documentStatus: SUBMITTED
+                      - id: 3058aofl-e56b-12d3-a456-4266141734ed
+                        documentName: utility_bill2.pdf
+                        documentType: UTILITY_BILL
+                        documentStatus: SUBMITTED
+                      - id: dkgi9360-e56b-12d3-a456-4266141712ws
+                        documentName: ein_docs.pdf
+                        documentType: EIN_DOCS
+                        documentStatus: SUBMITTED
+                ApplicationInProgress:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: IN_PROGRESS
+                    documentMetadata:
+                      - id: 2457rfjg-e56b-12d3-a456-42661417sed2
+                        documentName: drivers_license_front.pdf
+                        documentType: DRIVERS_LICENSE
+                        documentStatus: PROVIDED
+                      - id: 3525rfjg-e56b-12d3-a456-42661417kjy7
+                        documentName: drivers_license_back.pdf
+                        documentType: DRIVERS_LICENSE
+                        documentStatus: PROVIDED
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+  /applications/{applicationId}/documents/{id}:
+    get:
+      tags:
+        - Application Documents
+      summary: Retrieve a single document file
+      description: Retrieve a single document file Base64 encoded
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: ID from document metadata
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetDocumentResponse'
+              example:
+                id: 6849rfjg-e56b-12d3-a456-42661417ght5
+                documentName: drivers_license_front.pdf
+                documentType: DRIVERS_LICENSE
+                documentStatus: SUBMITTED
+                document: Base64-encoded file content
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ApplicationNotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+                DocumentNotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The document 564f9823-e89b-12d3-a456-42661417eghy was not found.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+  # /applications/{applicationId}/documents/outstanding:
+  #   get:
+  #     tags:
+  #       - Application Documents
+  #     summary: Get outstanding documents
+  #     description: Get a list of outstanding documents yet to be uploaded for an application
+  #     parameters:
+  #       - name: applicationId
+  #         in: path
+  #         description: Application ID
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       200:
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/GetOutstandingDocumentsResponse'
+  #             examples:
+  #               PreSubmissionRequiredDocs:
+  #                 value:
+  #                   applicationId: 123e4567-e89b-12d3-a456-426614174000
+  #                   applicationStatus: IN_PROGRESS
+  #                   outstandingDocuments: [BANK_STATEMENT]
+  #               PostSubmissionRequiredDocs:
+  #                 value:
+  #                   applicationId: 123e4567-e89b-12d3-a456-426614174000
+  #                   applicationStatus: SUBMITTED
+  #                   outstandingDocuments: [TAX_RETURNS, FINANCIAL_STATEMENT]
+  #       401:
+  #         description: Unauthorized
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               Unauthorized:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: auth_error
+  #                   errorDescription: The request does not contain a valid access token.
+  #       403:
+  #         description: Forbidden
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               Unauthorized:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: auth_error
+  #                   errorDescription: The access token does not have the required permissions.
+  #       404:
+  #         description: Not Found
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               NotFound:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: resource_not_found
+  #                   errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+  #       500:
+  #         description: Internal Server Error
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
+  #             examples:
+  #               SystemError:
+  #                 value:
+  #                   errorType: api_error
+  #                   errorCode: system_error
+  #                   errorDescription: Error occurred while processing your request.
+
+  /applications/{applicationId}/withdraw:
+    post:
+      tags:
+        - Applications
+      summary: Withdraw an application
+      description: Withdraw an application with reason
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawApplicationRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawApplicationResponse'
+              examples:
+                Withdrawn:
+                  value:
+                    applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    applicationStatus: WITHDRAWN
+                    description: Application withdrawn
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidRequest:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_request
+                    errorDescription:
+                      - field: reason
+                        issue: Missing
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                IncompatibleApplicationStatusApproved:
+                  value:
+                    errorType: api_error
+                    errorCode: incompatible_application_status
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 could not be withdrawn because it has been approved.
+                IncompatibleApplicationStatusDeclined:
+                  value:
+                    errorType: api_error
+                    errorCode: incompatible_application_status
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 could not be withdrawn because it has been declined.
+                IncompatibleApplicationStatusWithdrawn:
+                  value:
+                    errorType: api_error
+                    errorCode: incompatible_application_status
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 could not be withdrawn because it has been withdrawn already.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while processing your request.
+
+  /applications/{applicationId}/submit:
+    post:
+      tags:
+        - Applications
+      summary: Submit an application
+      description: Submit an application (Data can't be updated anymore after submission)
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application ID
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitApplicationResponse'
+              example:
+                applicationId: 123e4567-e89b-12d3-a456-426614174000
+                applicationStatus: SUBMITTED
+                description: Application submitted
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The request does not contain a valid access token.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Unauthorized:
+                  value:
+                    errorType: api_error
+                    errorCode: auth_error
+                    errorDescription: The access token does not have the required permissions.
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                NotFound:
+                  value:
+                    errorType: api_error
+                    errorCode: resource_not_found
+                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+        422:
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidApplication:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_application
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 could not be submitted because of incomplete/incorrect application data.
+                InvalidApplicationMissingRequiredDocs:
+                  value:
+                    errorType: api_error
+                    errorCode: invalid_application
+                    errorDescription: 'Application 123e4567-e89b-12d3-a456-426614174000 could not be submitted because of missing required documents: ###, ###'
+                IncompatibleApplicationStatus:
+                  value:
+                    errorType: api_error
+                    errorCode: incompatible_application_status
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 has already been submitted and could not be submitted again.
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                SystemError:
+                  value:
+                    errorType: api_error
+                    errorCode: system_error
+                    errorDescription: Error occurred while submitting the appication.
+
+  /your-webhook-endpoint:
+    post:
+      tags:
+        - Application Webhook
+      summary: Webhook to receive application events
+      description: Webhook to receive application events. Payload can optionally be encrypted with symmetric encryption.
+      security:
+        - ApiKeyAuth: []
+      x-readOnly: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationEventsWebhookRequest'
+            examples:
+              WebhookAdditionalInfoRequestedExample:
+                $ref: '#/components/examples/WebhookAdditionalInfoRequestedExample'
+              WebhookApplicationUpdatedExample:
+                $ref: '#/components/examples/WebhookApplicationUpdatedExample'
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        500:
+          description: Internal Server Error
