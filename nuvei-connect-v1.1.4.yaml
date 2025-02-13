@@ -3749,7 +3749,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: incompatible_application_status
-                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 has already been submitted and could not be submitted again.
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 has already been submitted and could not be submitted again. 
         500:
           description: Internal Server Error
           content:
