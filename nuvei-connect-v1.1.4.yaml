@@ -14,6 +14,17 @@ components:
       type: apiKey
       in: header
       name: Authorization
+      description:
+        |
+        This endpoint requires **Access Token Authentication (Bearer Token)** to ensure secure access.  
+        Please include the **access token** in the request header as `Authorization: Bearer <token>`.  
+
+        ### 📋 **Access Token Authentication Details**  
+
+        | **Parameter**    | **Type** | **Location** | **Description**                                            |
+        |------------------|----------|--------------|------------------------------------------------------------|
+        | `Authorization`  | String   | Header       | The access token used to authenticate the request. Format: `Bearer <access_token>`.
+
   schemas:
     Country:
       type: string
@@ -37,7 +48,7 @@ components:
         city:
           type: string
           maxLength: 50
-          description: The name of the city. Required if stateOrProvince is provided. If you specify the city, you must also send postalCode and street.  
+          description: The name of the city. Required if stateOrProvince is provided. If you specify the city, you must also send postalCode and street.
         postalCode:
           type: string
           maxLength: 10
@@ -139,7 +150,7 @@ components:
         - PASSPORT
         - GOVERNMENT_ISSUED_ID
       example: PASSPORT
-      description: Types of ID documents
+      description: Document types supported for Upload or Retrieval.
     
     BankDocumentType:
       type: string
@@ -1162,7 +1173,7 @@ components:
         - WITHDRAWN
         - DECLINED
         - APPROVED
-      description: External application statuses
+      description: Represents the current state of an external application.
     
     CreateApplicationResponse:
       type: object
@@ -1251,7 +1262,7 @@ components:
       properties:
         applicationId:
           type: string
-          description: Application to which the document was uploadad
+          description: Application to which the document was uploadad.
         applicationStatus:
           $ref: '#/components/schemas/ApplicationStatus'
         description:
@@ -1263,7 +1274,7 @@ components:
         - REQUESTED
         - PROVIDED
         - SUBMITTED
-      description: Document status
+      description: Status of the document.
     
     DocumentMetadata:
       type: object
@@ -1271,8 +1282,10 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique ID of the document from metadata.
         documentName:
           type: string
+          description: Name of the document
         documentType:
           $ref: '#/components/schemas/DocumentType'
         documentStatus:
@@ -1283,6 +1296,7 @@ components:
       properties:
         applicationId:
           type: string
+          description: Unique ID of the application the document belongs to.
         applicationStatus:
           $ref: '#/components/schemas/ApplicationStatus'
         documentMetadata:
@@ -1300,14 +1314,14 @@ components:
               document:
                 type: string
                 format: byte
-                description: Base64-encoded file content
+                description: Content of a specific document in Base64-encoded format.
     
     GetOutstandingDocumentsResponse:
       type: object
       properties:
         applicationId:
           type: string
-          description: Application to which the outstanding documents belong
+          description: Application to which the outstanding documents belong.
         applicationStatus:
           $ref: '#/components/schemas/ApplicationStatus'
         outstandingDocuments:
@@ -3121,13 +3135,13 @@ paths:
       tags:
         - Application Documents
       summary: Upload documents
-      description: Upload single or multiple documents (Base64 encoded) for an application
+      description: Allows to securely upload single or multiple documents in Base64-encoded format for a specific application. It provides necessary documentation for verification and processing purposes within the Nuvei platform.
       security:
         - ApiKeyAuth: []
       parameters:
         - name: applicationId
           in: path
-          description: Application ID
+          description: Unique ID of the application the document belongs to.
           required: true
           schema:
             type: string
@@ -3248,13 +3262,13 @@ paths:
       tags:
         - Application Documents
       summary: Get document metadata of an application
-      description: Get document metadata of an application
+      description: Retrieves all metadata information related to the document including document names, types, and statuses. It can be used to track and manage application's document verification process efficiently.
       security:
         - ApiKeyAuth: []
       parameters:
         - name: applicationId
           in: path
-          description: Application ID
+          description: Unique ID of the application the document belongs to.
           required: true
           schema:
             type: string
@@ -3269,6 +3283,7 @@ paths:
                 ApplicationSubmitted:
                   value:
                     applicationId: 123e4567-e89b-12d3-a456-426614174000
+                    description: Unique ID of the application the document belongs to.
                     applicationStatus: SUBMITTED
                     documentMetadata:
                       - id: 6849rfjg-e56b-12d3-a456-42661417ght5
@@ -3327,7 +3342,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: auth_error
-                    errorDescription: The request does not contain a valid access token.
+                    errorDescription: The access token provided is invalid or has expired. Please try again.
         403:
           description: Forbidden
           content:
@@ -3339,7 +3354,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: auth_error
-                    errorDescription: The access token does not have the required permissions.
+                    errorDescription: The provided credentials do not have sufficient permissions to execute the request.
         404:
           description: Not Found
           content:
@@ -3351,7 +3366,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: resource_not_found
-                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+                    errorDescription: No information found for the provided request.
         500:
           description: Internal Server Error
           content:
@@ -3363,26 +3378,26 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: system_error
-                    errorDescription: Error occurred while processing your request.
+                    errorDescription: An internal server error occurred while processing the request. Please try again later.
 
   /applications/{applicationId}/documents/{id}:
     get:
       tags:
         - Application Documents
       summary: Retrieve a single document file
-      description: Retrieve a single document file Base64 encoded
+      description: Retrieve a specific document file in a Base64-encoded format. It keeps the document secure and makes transfer easy. It can be converted back to its original file format when needed.
       security:
         - ApiKeyAuth: []
       parameters:
         - name: applicationId
           in: path
-          description: Application ID
+          description: Unique ID of the application the document belongs to.
           required: true
           schema:
             type: string
         - name: id
           in: path
-          description: ID from document metadata
+          description: Unique ID of the document from metadata.
           required: true
           schema:
             type: string
@@ -3410,7 +3425,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: auth_error
-                    errorDescription: The request does not contain a valid access token.
+                    errorDescription: The access token provided is invalid or has expired. Please try again.
         403:
           description: Forbidden
           content:
@@ -3422,7 +3437,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: auth_error
-                    errorDescription: The access token does not have the required permissions.
+                    errorDescription: The provided credentials do not have sufficient permissions to execute the request.
         404:
           description: Not Found
           content:
@@ -3434,12 +3449,12 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: resource_not_found
-                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+                    errorDescription: No information found for the provided request.
                 DocumentNotFound:
                   value:
                     errorType: api_error
                     errorCode: resource_not_found
-                    errorDescription: The document 564f9823-e89b-12d3-a456-42661417eghy was not found.
+                    errorDescription: No information found for the provided request.
         500:
           description: Internal Server Error
           content:
@@ -3451,7 +3466,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: system_error
-                    errorDescription: Error occurred while processing your request.
+                    errorDescription: An internal server error occurred while processing the request. Please try again later.
 
   # /applications/{applicationId}/documents/outstanding:
   #   get:
@@ -3734,7 +3749,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: incompatible_application_status
-                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 has already been submitted and could not be submitted again.
+                    errorDescription: Application 123e4567-e89b-12d3-a456-426614174000 has already been submitted and could not be submitted again. 
         500:
           description: Internal Server Error
           content:
