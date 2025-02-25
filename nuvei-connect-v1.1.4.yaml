@@ -23,8 +23,24 @@ components:
 
         | **Parameter**    | **Type** | **Location** | **Description**                                            |
         |------------------|----------|--------------|------------------------------------------------------------|
-        | `Authorization`  | String   | Header       | The access token used to authenticate the request. Format: `Bearer <access_token>`.
+        | Authorization  | String   | Header       | The access token used to authenticate the request. Format: Bearer <access_token>.
+    
+    UploadDocumentAuth:
+      type: http
+      scheme: bearer
+      description:
+        |
+        **Role-Based Access Control (RBAC):**
+        - Users may be limited to uploading only specific document types based on their permissions.
+        - The system does not allow document uploads if the application is in WITHDRAWN, APPROVED, or DECLINED status.
+        **Bearer Token Authentication** is used for secure document upload in this endpoint.
+        The token should be incuded in the 'Authorization' header of the request.
+        
+        ### 📋 **Bearer Token Authentication Details**  
 
+        | **Parameter**    | **Type** | **Location** | **Description**                                             |
+        |------------------|----------|--------------|-------------------------------------------------------------|
+        | Authorization  | String   | Header       | This is the access token used to authenticate the request. Format: 'Bearer <access_token>'.  
   schemas:
     Country:
       type: string
@@ -91,6 +107,9 @@ components:
 
     BusinessType:
       type: string
+      description: |
+        - Business Type field identifies the legal structure of the entity submitting the application.
+        - It must be one of the predefined values.
       enum: # Need a full list of this enum
         - INDIVIDUAL
         - COMPANY
@@ -101,8 +120,8 @@ components:
         - PARTNERSHIP
         - GOVERNMENT
         - NON_PROFIT
+      required: true 
       example: COMPANY
-      description: Type of business
 
     BusinessStructure:
       type: string
@@ -150,7 +169,10 @@ components:
         - PASSPORT
         - GOVERNMENT_ISSUED_ID
       example: PASSPORT
-      description: Document types supported for Upload or Retrieval.
+      description: |
+        Document types supported for Upload or Retrieval.
+        - Specifies the type / category of the document being uploaded. 
+        - e.g.,: Id Document, Bank Document, Address Validation Document   
     
     BankDocumentType:
       type: string
@@ -385,10 +407,12 @@ components:
                         $ref: '#/components/schemas/IdDocumentType'
                       documentName:
                         type: string
+                        description: Name of the document.
+                        example: tax_return_2023.pdf 
                       document:
                         type: string
                         format: byte
-                        description: Base64-encoded file content. It won't be included in the case of retrieving an application.
+                        description: The document file content is in Base64-encoded format. This is not included in the case of retrieving an application.
                       # remark:
                       #   type: string
                       #   maxLength: 200
@@ -1069,14 +1093,98 @@ components:
       type: object
       properties:
         documentType:
-          $ref: '#/components/schemas/DocumentType'
+          description: |
+            - Document Type defines the category of the document being uploaded. 
+            - Document Type of a document must match the predefined document categories.
+            - Must be provided if document is to be provided. 
+            - example: Id Document, Bank Document, Address Validation Document    
+          properties: 
+            IdentificationDocument:
+              type: string
+              title: Identification Document
+              description: |
+                - Conditionally required
+                - At least one of the following must be provided if the **country** is **Canada**.
+                  - DRIVERS_LICENSE
+                  - PASSPORT
+                  - GOVERNMENT_ISSUED_ID
+              enum:
+                - DRIVERS_LICENSE
+                - PASSPORT
+                - GOVERNMENT_ISSUED_ID
+              example: PASSPORT
+              
+            BankingDocument:
+              type: string
+              title: Identification Document
+              enum:
+                - BANK_STATEMENT
+                - VOID_CHECK
+                - STAMPED_BANK_LETTER
+              example: BANK_STATEMENT
+            
+            AddressVerificationDocument:
+              type: string
+              title: Address Verification Document
+              enum:
+                - UTILITY_BILL
+                - RENTAL_LEASE_AGREEMENT
+                - MORTGAGE_STATEMENT
+              example: UTILITY_BILL
+
+            NonGroupedDocument:
+                  type: string
+                  title: Other Documents
+                  enum:
+                    - AUDITED_FINANCIALS
+                    - TAX_RETURNS
+                    - PROCESSING_STATEMENTS
+                    - MOTO_INTERNET_QUESTIONNAIRE
+                    - PAGE_1_OF_MERCHANT_APPLICATION
+                    - EIN_DOCS
+                    - FEDERAL_FIREARMS_LICENSE
+                    - BAIL_BOND_AGENT_LICENSE_SURETY_BOND
+                    - PAWNBROKER_BUSINESS_LICENSE
+                    - TITLE_OR_LEASE_AGREEMENT
+                    - SERVICE_CONTRACT
+                    - PROOF_OF_INVENTORY
+                    - SUPPLIER_INVOICES
+                    - DETAILED_EXPLANATION_OF_BUSINESS_MODEL
+                    - BUSINESS_REGISTRATIONS_LICENSES_PERMITS
+                    - FULFILLMENT_AGREEMENTS
+                    - RESELLER_AGREEMENTS
+                    - PERSONAL_GUARANTEE
+                    - SALES_INVOICES
+                    - ADDENDUM
+                    - ECOMM_CHECKLIST
+                    - CROSS_CORP_GUARANTY
+                    - OTHERS
+                  example: TAX_RETURNS
+
         documentName:
           type: string
+          description: |
+            - Document Name represents the name of the file / document uploaded by the user. 
+            - It is used for identification, retrieval and versioning of the file in the system. <br>
+            #### Example Values:
+              - tax_return_2023.pdf
+              - bank_statement_2024.pdf
         document:
           type: string
           format: byte
-          description: Base64-encoded file content. It won't be included in the case of retrieving an application.
-        # remark:
+          description: |
+            - Document refers to the actual document content stored in the system.
+            - This is the Base64-encoded file uploaded by the user. 
+              #### Supported Formats:
+              - PDF 
+              - JPEG
+              - PNG 
+              #### Size Limitations:
+              - Minimum: 1 KB
+              - Maximum: 2 MB 
+              #### Encoding:
+              - Must be **Base64-encoded**.        
+          
         #   type: string
         #   maxLength: 200
         #   description: Any remark about this document
@@ -2458,7 +2566,14 @@ paths:
       tags:
         - Applications
       summary: Create a new application
-      description: Create a new application for a partner or merchant account
+      description: |
+        ### Overview:
+        The Create Application API allows users to create a new application for a partner or merchant account. This API is designed to facilitate the submission of business details, owner information, banking details, sales profile, tax details, and other necessary information required for processing an application.
+
+        ### Key Features:
+        - **Comprehensive Business Profile Submission:** This API supports merchant onboarding with all detailed business and other information.
+        - **Schema Validation:** Enforces schema validation and business rules to ensure data integrity.
+        - **Document Handling:** Accepts multiple documents under various document types including identification, banking, and address verification documents.
       security:
         - ApiKeyAuth: []
       requestBody:
@@ -3135,13 +3250,113 @@ paths:
       tags:
         - Application Documents
       summary: Upload documents
-      description: Allows to securely upload single or multiple documents in Base64-encoded format for a specific application. It provides necessary documentation for verification and processing purposes within the Nuvei platform.
+      description: |
+        ### Overview
+        - The Upload Documents API enables users to upload one or multiple documents in Base64-encoded format for their applications. These documents are necessary for merchant onboarding, underwriting and compliance verification.
+        - The documents undergo validation, and processing before they are securely stored.
+        
+        ### Acceptable Document Format
+        - PDF
+        - JPEG
+        - PNG
+        
+        ### Acceptable Document Size 
+        - Minimum 1 KB
+        - Maximum 2 MB
+      
+        ## Document Upload Field Specifications
+        The following table describes the key fields required when uploading a document. 
+           
+        | **Field Name**  | **Definition**                                        | **Data Type**       | **Validation Rules**                                                 | **Example Values**                          | **Conditional Requirements**                              | **Business Rules**                             | **Allowed Values** |
+        |---------------|------------------------------------------------|-----------------|------------------------------------------------------------------|-------------------------------------------|--------------------------------------------------|--------------------------------------|----------------|
+        | documentType  | Specifies the type of document being uploaded | String (Enum)   | **Required** field only if the document is being uploaded <br><br> Must match predefined types                        | DRIVERS_LICENSE, BANK_STATEMENT, UTILITY_BILL | If country is Canada: ID documents are mandatory. |
+        | document      | The actual document file in Base64 format     | String  | **Required** only if the document is being uploaded <br> <br> Must be Base64-encoded <br> <br> **Formats:** PDF, JPEG, PNG <br> Min Size: 1KB <br> Max Size: 2MB | Base64 encoded content | - | Secure storage and validation | PDF, JPEG, PNG |
+
+        ## Document Type Categories
+        The following table outlines the different categories of document types allowed in this API:
+
+      
+        | **Document Category**         | **Allowed Values**                                              | **Validation / Rules** | **Business Rules** |
+        |--------------------------------|----------------------------------------------------------------|-----------------------------|---------------------|
+        | **Identification Document**    | DRIVERS_LICENSE, PASSPORT, GOVERNMENT_ISSUED_ID               | **For Canada:** At least one of the listed documents is mandatory. **Other countries:** Optional. | Used for **identity verification**. |
+        | **Banking Document**           | BANK_STATEMENT, VOID_CHECK, STAMPED_BANK_LETTER               | Must be one of the allowed banking document types <br><br> **Required** only if banking details verification is necessary<br><br>Must be **Base64-encoded**<br><br> **Accepted formats:** PDF, JPEG, PNG <br><br> **Size Limit:** Min: 1KB, Max: 2MB | Used for **underwriting and financial assessment**. |
+        | **Address Verification Document** | UTILITY_BILL, RENTAL_LEASE_AGREEMENT, MORTGAGE_STATEMENT  | Must be one of the allowed address verification document types <br><br> **Required** only if address verification is necessary<br><br>Must be **Base64-encoded**<br><br> **Accepted formats:** PDF, JPEG, PNG <br><br> **Size Limit:** Min: 1KB, Max: 2MB | Ensures **proof of address** for applicants. |
+        | **Non-Grouped Document**       | AUDITED_FINANCIALS, TAX_RETURNS, PROCESSING_STATEMENTS, MOTO_INTERNET_QUESTIONNAIRE, PAGE_1_OF_MERCHANT_APPLICATION, EIN_DOCS, FEDERAL_FIREARMS_LICENSE, BAIL_BOND_AGENT_LICENSE_SURETY_BOND, PAWNBROKER_BUSINESS_LICENSE, TITLE_OR_LEASE_AGREEMENT, SERVICE_CONTRACT, PROOF_OF_INVENTORY, SUPPLIER_INVOICES, DETAILED_EXPLANATION_OF_BUSINESS_MODEL, BUSINESS_REGISTRATIONS_LICENSES_PERMITS, FULFILLMENT_AGREEMENTS, RESELLER_AGREEMENTS, PERSONAL_GUARANTEE, SALES_INVOICES, ADDENDUM, ECOMM_CHECKLIST, CROSS_CORP_GUARANTY, OTHERS | Must be one of the pre-defined doocumet types <br><br> Required if explicity requested during application review, underwrting <br> <br> Must be **Base-64 encoded**<br><br> **Accepted formats:** PDF, JPEG, PNG <br><br> **Size Limit:** Min: 1KB, Max: 2MB | Used for **business verification, regulatory compliance, and risk assessment**. |
+
+        **ℹ️ Additional Notes:**
+        - **Identification documents** are **mandatory if the country is 'Canada'**. At least one of **DRIVERS_LICENSE, PASSPORT, or GOVERNMENT_ISSUED_ID** should be provided for **Canada**.
+
+        **💡 Developer Tip:** Ensure that document uploads match the expected categories and the conditional requirements (like country-based rules) are met **before submitting** to avoid validation failures.
+
+        ### Purpose and Use Cases
+        This API enables users to upload documents at various stages of the application lifecycle. It supports different business scenarios, ensuring compliance, underwriting, and onboarding processes proceed smoothly.
+
+        ## Document Upload Scenarios  
+        Documents can be uploaded in the following stages using this API:
+
+        ### 1. Along with Application Submission
+        - When a merchant submits an application, they can attach the necessary documents upfront along with the application itself.
+        - **Example:** Uploading **Driver's license for ID verification and bank statements** at the time of application submission.
+
+        ### 2. After Application Creation but Before Submission
+        - Users can upload required documents after creating an application but before submitting it.
+        - **Example:** A merchant creates an application but uploads missing **compliance documents (e.g., Bank statements)** later.
+
+        ### 3. After Application Submission (Additional Document Uploads)
+        - If additional documents are needed post-submission, users can provide them via this API.
+        - **Example:** A compliance team requests **proof of address (utility bill)** after submission.
+
+        ### 4. For Additional Document Requests from Underwriting
+        - If underwriting or compliance teams request further documentation, users can fulfill these requests by uploading the required files.
+        - **Example:** The system generates an **additional document request for a missing or additional government-issued ID**, and the merchant uploads a **passport or driver's license**.
+
+
+        **This API is used in the following scenarios:**
+        - **Merchant Onboarding**: Uploading business-related, financial, identity, or compliance-related documents required for approval and underwriting along with the application.
+        - **Regulatory Compliance**: Providing necessary documents for regulatory requirements.
+        - **Additional Documents Requests**: Uploading extra documents if requested during underwriting processes.
+        - **Bulk Upload Support**: Uploading multiple files in a sinlge request.
+          
+        **Required Permissions:**
+        - To access this endpoint, users must have valid credentials.
+        - API requests must include a valid access token in the 'Authorization' header.
+        - Role-based and Subscription-based access may restrict document submission based on application status. 
+      
+        ### Expected Outcomes
+        Upon a successful request, the API will: 
+        - Validate and store the uploaded document(s).
+        - Associate uploaded documents with their application ID.        
+        - If applicable, forward documents for underwriting review.
+      
+        ### Example Use Cases
+        **Use Case 1: Merchant Uploads Financial Documents**
+        - A merchant submits one or multiple documents required for onboarding, like bank statements, tax returns, and an identification document.
+        - The API processes the files in a single request and validates them for format, size, and compliance.
+        - After validation, the system stores the documents securely and links them to the user's application.
+        - The underwriting team then reviews the uploaded documents.
+        - If all documents meet regulatory, business and other requirements, the application proceeds to the next stage in the approval process.
+        
+        **Use Case 3: Additional Document Submission for Compliance**
+        - An applicant is requested to provide a 'passport.pdf' for identity verification.
+        - They upload the document via this API.
+        - The application progresses once the document is validated.
+      
+        **Use Case 4: Business Verification Process**
+        - A merchant provides 'business_license.pdf' to complete their application.
+        - Once verified for compliance, risk assessment, and underwriting approval, the merchant is approved for onboarding.
+      
+        ### Security Considerations
+        - **Bearer Token Authentication** for secure access.
       security:
-        - ApiKeyAuth: []
+        - UploadDocumentAuth: []
+      
       parameters:
         - name: applicationId
           in: path
-          description: Unique ID of the application the document belongs to.
+          description: |
+            - Application ID is the unique ID of the application that the uploaded documents belongs to.
+            - This ID associates the uploaded documents with their respective applications.
+            - This ID must match an existing application record in the system.
           required: true
           schema:
             type: string
@@ -3173,12 +3388,12 @@ paths:
                   value:
                     applicationId: 123e4567-e89b-12d3-a456-426614174000
                     applicationStatus: IN_PROGRESS
-                    description: Document(s) received. Applcation yet to be submitted.
+                    description: The document have been successfully received. The application is yet to be submitted.
                 DocumentsMarkedAsSubmitted:
                   value:
                     applicationId: 123e4567-e89b-12d3-a456-426614174000
                     applicationStatus: SUBMITTED
-                    description: Document(s) submitted.
+                    description: The document(s) have been successfully submitted.
         400:
           description: Bad Request
           content:
@@ -3192,7 +3407,8 @@ paths:
                     errorCode: invalid_request
                     errorDescription:
                       - field: documentType
-                        issue: Document type is missing
+                        issue: The document type '{{document_type}}' is missing. Please provide all required documents.
+
         401:
           description: Unauthorized
           content:
@@ -3204,7 +3420,8 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: auth_error
-                    errorDescription: The request does not contain a valid access token.
+                    errorDescription: The access token provided is invalid or has expired. Please try again.
+
         403:
           description: Forbidden
           content:
@@ -3216,8 +3433,8 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: auth_error
-                    errorDescription: The access token does not have the required permissions.
-        404:
+                    errorDescription: The provided credentials do not have sufficient permissions to execute the request.        
+        404:  
           description: Not Found
           content:
             application/json:
@@ -3228,7 +3445,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: resource_not_found
-                    errorDescription: The application 123e4567-e89b-12d3-a456-426614174000 was not found.
+                    errorDescription: No information found for the provided request.
         422:
           description: Unprocessable Content
           content:
@@ -3240,7 +3457,7 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: invalid_application
-                    errorDescription: Document(s) too large. Size limit is XXX per document.
+                    errorDescription: The file size exceeds the allowed limit of {{limit_size}} MB.
                 MalwareScanningFailed:
                   value:
                     errorType: api_error
@@ -3257,12 +3474,37 @@ paths:
                   value:
                     errorType: api_error
                     errorCode: system_error
-                    errorDescription: Error occurred while processing your request.
+                    errorDescription: An internal server error occurred while processing the request. Please try again later.
     get:
       tags:
         - Application Documents
       summary: Get document metadata of an application
-      description: Retrieves all metadata information related to the document including document names, types, and statuses. It can be used to track and manage application's document verification process efficiently.
+      description: |
+        ### Overview |
+        The Get Document Metadata retrieves metadata details of all documents within the application.
+        - The Metadata includes attributes such as document ID, name, type, size, creation date, last modified date, and owner details.
+        - Users can track the status and other attributes of each document submitted during the onboarding process.
+
+
+        ### Purpose and Use Cases 
+        - Accesses metadata such as document name, type, status, and submission timestamp for all documents associated with an application.
+        - Keeps track of all documents required during the onboarding process and ensure that the correct documents are submitted.
+        - Fetches metadata associated with a specific document.
+        - Helps users verify the document attributes without downloading the actual file.
+        - Supports filtering metadata fields based on request parameters.
+
+        ### Permissions & Authentication |
+        - Users can access the document metadata on the basis of their user roles (only document owners or admins can retrieve metadata).
+        
+        ### Expected Outcome
+        - Merchants can efficiently track and manage the status of all submitted documents.
+        - Streamlined compliance verification during the onboarding process.
+        - Secure and structured retrieval of document metadata without unnecessary file downloads.
+        
+        ### Example Use Cases
+        - A user wants to check details of the submitted document.
+        - An admin wants to audit documents by verifying metadata like owner, creation date, and last modified date.
+
       security:
         - ApiKeyAuth: []
       parameters:
@@ -3385,7 +3627,30 @@ paths:
       tags:
         - Application Documents
       summary: Retrieve a single document file
-      description: Retrieve a specific document file in a Base64-encoded format. It keeps the document secure and makes transfer easy. It can be converted back to its original file format when needed.
+      description: |
+        ### Overview
+        - Enables users to retrieve / download a specific document submitted for onboarding that is associated with their application.
+        - The document is returned in a Base64-encoded format, allowing it to be securely transmitted, verified or downloaded by the merchant.
+        
+        ### Purpose and Use Cases |
+         This feature is ideal for the scenarios where there is a need for:
+          
+        - **Verification**: Merchants can verify the content of submitted documents.
+        - **Download**: Merchants can download documents in their original form for offline use.
+        - **Tracking**: Merchants can track the current status of their documents.
+        
+        ### Response Behavior |
+          The response includes key metadata about the document, including the document's name, type, status, and a Base64-encoded representation of the file itself making it suitable for both real-time verification and document management during the onboarding process.
+        
+        ### Expected Outcome
+        - Seamless access to specific documents submitted by merchants.
+        - Enhanced ability to manage and verify documents as part of the onboarding workflow.
+        - Secure document retrieval with proper access control.
+        
+        
+        ### Example Use Case
+        - A merchant submits a drivers_license_front.pdf during onboarding. Later, they use the documentId to retrieve, verify, or download the file for offline use.
+
       security:
         - ApiKeyAuth: []
       parameters:
@@ -3471,7 +3736,7 @@ paths:
   # /applications/{applicationId}/documents/outstanding:
   #   get:
   #     tags:
-  #       - Application Documents
+  #       - Application Documents               
   #     summary: Get outstanding documents
   #     description: Get a list of outstanding documents yet to be uploaded for an application
   #     parameters:
